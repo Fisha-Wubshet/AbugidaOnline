@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:abugida_online/assignment/assignment.dart';
 import 'package:abugida_online/main.dart';
 import 'package:abugida_online/resources/Resources.dart';
 import 'package:abugida_online/utils/httpUrl.dart';
@@ -176,14 +177,9 @@ class _CourseAssignmentState extends State<CourseAssignment> {
 
   Widget getBody() {
     if (Courses.contains(null) || Courses.length < 0 || isLoading) {
-      return Material(
-          child: SpinKitThreeBounce(
-        color: Color(0xff229546),
-        size: 30,
-      ));
+      return const SpinKitDoubleBounce(size: 71.0, color: Color(0xff229546));
     }
-    return Center(
-      child: SingleChildScrollView(
+    return  SingleChildScrollView(
         child: Column(
           children: [
             Padding(
@@ -218,7 +214,7 @@ class _CourseAssignmentState extends State<CourseAssignment> {
             ),
           ],
         ),
-      ),
+
     );
   }
 
@@ -227,12 +223,8 @@ class _CourseAssignmentState extends State<CourseAssignment> {
     var quantity = item['resource_count'];
 
     return InkWell(
-      onTap: () => Navigator.of(context)
-          .push(
-            new MaterialPageRoute(
-                builder: (_) => new Resources(course_id: item['id'])),
-          )
-          .then((val) => val ? _getRequests() : null),
+      onTap: () => Navigator.of(context).push(new MaterialPageRoute(
+                builder: (_) => new Assignment(course_id: item['course_id'], course_name: item['courseName'])),),
       child: Material(
         color: Color(0xff229546),
         elevation: 14,
@@ -253,7 +245,7 @@ class _CourseAssignmentState extends State<CourseAssignment> {
                   children: <Widget>[
                     //text
                     Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.all(6.0),
                       child: SizedBox(
                         width: MediaQuery.of(context).size.width * 0.33,
                         child: Text(
@@ -264,7 +256,7 @@ class _CourseAssignmentState extends State<CourseAssignment> {
                               fontWeight: FontWeight.w900,
                               color: Color(0xffffffff),
                               letterSpacing: 1,
-                              fontSize: 20,
+                              fontSize: 17,
                               shadows: <Shadow>[
                                 Shadow(
                                   offset: Offset(2.0, 2.0),

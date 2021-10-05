@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:abugida_online/Quiz/ExamsList.dart';
 import 'package:abugida_online/main.dart';
 import 'package:abugida_online/resources/Resources.dart';
 import 'package:abugida_online/utils/httpUrl.dart';
@@ -15,18 +16,18 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 //================================================================================
 
-class CourseResources extends StatefulWidget {
+class CourseExams extends StatefulWidget {
   @override
-  _CourseResourcesState createState() => _CourseResourcesState();
+  _CourseExamsState createState() => _CourseExamsState();
 }
 
-class _CourseResourcesState extends State<CourseResources> {
+class _CourseExamsState extends State<CourseExams> {
   _getRequests() async {
     setState(() {
       Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
               builder: (BuildContext context) => HomePage(loginVerified: true)),
-          (Route<dynamic> route) => false);
+              (Route<dynamic> route) => false);
     });
   }
 
@@ -52,7 +53,7 @@ class _CourseResourcesState extends State<CourseResources> {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       var token = prefs.getString('token');
-      var url = Uri.parse("$httpUrl/api/getMyCourseResources");
+      var url = Uri.parse("$httpUrl/api/getMyCourseExams");
       var response = await http.get(url, headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -178,46 +179,46 @@ class _CourseResourcesState extends State<CourseResources> {
     if (Courses.contains(null) || Courses.length < 0 || isLoading) {
       return Material(
           child: SpinKitDoubleBounce(
-        color: Color(0xff229546),
-        size: 71,
-      ));
+            color: Color(0xff229546),
+            size: 71,
+          ));
     }
     return SingleChildScrollView(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 24, left: 8, right: 8),
-              child: StaggeredGridView.count(
-                shrinkWrap: true,
-                crossAxisCount: 1,
-                physics: ScrollPhysics(),
-                children: <Widget>[
-                  myItems1(0xff000000),
-                ],
-                staggeredTiles: [
-                  StaggeredTile.extent(1, 50.0),
-                ],
-              ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 24, left: 8, right: 8),
+            child: StaggeredGridView.count(
+              shrinkWrap: true,
+              crossAxisCount: 1,
+              physics: ScrollPhysics(),
+              children: <Widget>[
+                myItems1(0xff000000),
+              ],
+              staggeredTiles: [
+                StaggeredTile.extent(1, 50.0),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: StaggeredGridView.countBuilder(
-                shrinkWrap: true,
-                physics: ClampingScrollPhysics(),
-                crossAxisCount: 2,
-                itemCount: Courses.length,
-                itemBuilder: (context, index) {
-                  return getCard(Courses[index]);
-                },
-                staggeredTileBuilder: (int index) =>
-                    StaggeredTile.extent(1, 110.0),
-                mainAxisSpacing: 10.0,
-                crossAxisSpacing: 10.0,
-              ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: StaggeredGridView.countBuilder(
+              shrinkWrap: true,
+              physics: ClampingScrollPhysics(),
+              crossAxisCount: 2,
+              itemCount: Courses.length,
+              itemBuilder: (context, index) {
+                return getCard(Courses[index]);
+              },
+              staggeredTileBuilder: (int index) =>
+                  StaggeredTile.extent(1, 110.0),
+              mainAxisSpacing: 10.0,
+              crossAxisSpacing: 10.0,
             ),
-          ],
-        ),
-      )
+          ),
+        ],
+      ),
+    )
     ;
   }
 
@@ -228,11 +229,11 @@ class _CourseResourcesState extends State<CourseResources> {
     return InkWell(
       onTap: () => Navigator.of(context)
           .push(
-            new MaterialPageRoute(
-                builder: (_) => new Resources(
-                    course_id: item['course_id'],
-                    course_name: item['courseName'])),
-          )
+        new MaterialPageRoute(
+            builder: (_) => new ExamsList(
+                course_id: item['course_id'],
+                course_name: item['courseName'])),
+      )
           .then((val) => val ? _getRequests() : null),
       child: Material(
         color: Color(0xff229546),

@@ -1,11 +1,32 @@
+import 'dart:io';
+
 import 'package:abugida_online/Dashboard.dart';
 import 'package:abugida_online/HomePage.dart';
 import 'package:abugida_online/MyCourses.dart';
-import 'package:abugida_online/Questions/Questions.dart';
+import 'package:abugida_online/MyQuestions/AddQuestions.dart';
+import 'package:abugida_online/MyQuestions/QuestionsList.dart';
+import 'package:abugida_online/Notice/NoticeList.dart';
+import 'package:abugida_online/assignment/CourseAssignment.dart';
+import 'package:abugida_online/download/FileDownloading.dart';
+import 'package:abugida_online/download/downloadFolder.dart';
+import 'package:abugida_online/download/downloadList.dart';
+import 'package:abugida_online/fileupload.dart';
 import 'package:abugida_online/login.dart';
+import 'package:abugida_online/resources/CourseResources.dart';
+import 'package:abugida_online/webview.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-void main() => runApp(MyApp());
+void main() {
+  HttpOverrides.global = new MyHttpOverrides();
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Color(0xff229546),
+    ),
+  );
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
@@ -14,8 +35,8 @@ class MyApp extends StatelessWidget {
       title: "Abugida",
       theme: ThemeData(
         // Define the default brightness and colors.
-        primaryColor: Color(0xff82C042),
-        accentColor: Color(0xff82C042),
+        primaryColor: Color(0xff229546),
+        accentColor: Color(0xff229546),
 
         // Define the default font family.
 
@@ -30,7 +51,13 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
+class MyHttpOverrides extends HttpOverrides{
+  @override
+  HttpClient createHttpClient(SecurityContext context){
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (X509Certificate cert, String host, int port)=> true;
+  }
+}
 class HomePage extends StatefulWidget {
   final loginVerified;
   HomePage({this.loginVerified});
@@ -73,7 +100,7 @@ class _HomePageState extends State<HomePage> {
 
   int selectedPage = 0;
 
-  final _pageOptions = [Dashboard(), MyCourses(), Questions()];
+  final _pageOptions = [Dashboard(),DownloadFolder(), QuestionsList()];
   var _pageController = PageController();
 
   @override
@@ -145,30 +172,32 @@ class _HomePageState extends State<HomePage> {
                 leading: Icon(Icons.dashboard, color: Color(0xff229546)),
               ),
             ),
+
             InkWell(
-              onTap: () {},
-              child: ListTile(
-                title: Text('My Courses'),
-                leading: Icon(Icons.my_library_books_sharp,
-                    color: Color(0xff229546)),
-              ),
-            ),
-            InkWell(
-              onTap: () {},
+              onTap: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => new CourseAssignment()));
+              },
               child: ListTile(
                 title: Text('My Assignments'),
                 leading: Icon(Icons.border_color, color: Color(0xff229546)),
               ),
             ),
             InkWell(
-              onTap: () {},
+              onTap: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => new CourseResources()));
+              },
               child: ListTile(
-                title: Text('Ask a teacher'),
-                leading: Icon(Icons.question_answer, color: Color(0xff229546)),
+                title: Text('My Resource'),
+                leading: Icon(Icons.menu_book, color: Color(0xff229546)),
               ),
             ),
             InkWell(
-              onTap: () {},
+              onTap: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => new QuestionsList()));
+              },
               child: ListTile(
                 title: Text('My Questions'),
                 leading: Icon(Icons.download_done_outlined,
@@ -176,7 +205,18 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             InkWell(
-              onTap: () {},
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => new AddQuestion()));
+              },
+              child: ListTile(
+                title: Text('Ask a teacher'),
+                leading: Icon(Icons.question_answer, color: Color(0xff229546)),
+              ),
+            ),
+            InkWell(
+              onTap: () {
+
+              },
               child: ListTile(
                 title: Text('Videos'),
                 leading: Icon(Icons.video_collection_rounded,
@@ -184,7 +224,10 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             InkWell(
-              onTap: () {},
+              onTap: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => new NoticeList()));
+              },
               child: ListTile(
                 title: Text('Notices'),
                 leading:
@@ -192,13 +235,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             Divider(),
-            InkWell(
-              onTap: () {},
-              child: ListTile(
-                title: Text('Lock'),
-                leading: Icon(Icons.lock),
-              ),
-            ),
             InkWell(
               onTap: () {},
               child: ListTile(
@@ -237,10 +273,10 @@ class _HomePageState extends State<HomePage> {
             BottomNavigationBarItem(
                 icon: Icon(Icons.dashboard), title: Text('Dashboard')),
             BottomNavigationBarItem(
-                icon: Icon(Icons.my_library_books_sharp),
-                title: Text('My Courses')),
+                icon: Icon(Icons.download_sharp), title: Text('Downloads')),
             BottomNavigationBarItem(
                 icon: Icon(Icons.question_answer), title: Text('My Questions')),
+
           ],
           selectedItemColor: Color(0xff229546),
           elevation: 5.0,

@@ -2,7 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:abugida_online/MyCourses.dart';
+import 'package:abugida_online/Notice/NoticeList.dart';
+import 'package:abugida_online/Quiz/CourseExams.dart';
+import 'package:abugida_online/Quiz/QuizChoice.dart';
+import 'package:abugida_online/Videos/Videos.dart';
 import 'package:abugida_online/assignment/CourseAssignment.dart';
+import 'package:abugida_online/download/downloadFolder.dart';
 import 'package:abugida_online/resources/CourseResources.dart';
 import 'package:abugida_online/utils/httpUrl.dart';
 import 'package:flutter/material.dart';
@@ -234,7 +239,7 @@ class _DashboardState extends State<Dashboard> {
                   child: myItems1(
                       0xff000000,
                       0xffffffff,
-                      'Assignments',
+                      'Assignment',
                       Icons.library_books,
                       assignmentCount,
                       submissionCount,
@@ -243,19 +248,42 @@ class _DashboardState extends State<Dashboard> {
             Padding(
               padding: const EdgeInsets.only(top: 5, bottom: 5),
               child: InkWell(
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => CourseExams()));
+                  },
                   child: myItems2(
-                      0xff000000, 0xffffffff, 'Notices', Icons.message)),
+                      0xff000000, 0xffffffff, 'Exam', Icons.edit_road_sharp)),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 5, bottom: 5),
               child: InkWell(
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => new NoticeList()));
+                  },
+                  child: myItems2(
+                      0xff000000, 0xffffffff, 'Notice', Icons.message)),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 5, bottom: 5),
+              child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => new YoutubePlayerDemoApp()));
+                  },
                   child: myItems2(0xff000000, 0xffffffff, 'Videos',
                       Icons.video_collection_rounded)),
             ),
           ],
           staggeredTiles: [
+            StaggeredTile.extent(2, 120.0),
             StaggeredTile.extent(2, 120.0),
             StaggeredTile.extent(2, 120.0),
             StaggeredTile.extent(2, 120.0),

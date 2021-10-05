@@ -1,5 +1,10 @@
+import 'dart:math';
+
 import 'package:abugida_online/pdftest.dart';
 import 'package:abugida_online/utils/httpUrl.dart';
+import 'package:abugida_online/webview.dart';
+import 'package:dio/dio.dart';
+import 'package:file_utils/file_utils.dart';
 import 'package:flutter/material.dart';
 
 import 'dart:async';
@@ -15,6 +20,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:mime/mime.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Resources extends StatefulWidget {
@@ -33,6 +41,12 @@ class Resources extends StatefulWidget {
 class _ResourcesState extends State<Resources> {
   List users = [];
   bool isLoading = false;
+  bool downloading = false;
+  var progress = "";
+  var path = "No Data";
+  static final Random random = Random();
+  var _onPressed;
+  final imgUrl = "https://demo.trillium-elearing.com/storage/materials/Photosynthesis_1606674159.pdf";
   bool timeoutException = false;
   bool socketException = false;
   bool catchException = false;
@@ -63,22 +77,25 @@ class _ResourcesState extends State<Resources> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   //text
-                  Text(
-                    '${widget.course_name} Resources',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.fredokaOne(
-                      textStyle: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xffffffff),
-                        letterSpacing: 2,
-                        fontSize: 24,
-                        shadows: <Shadow>[
-                          Shadow(
-                            offset: Offset(2.0, 2.0),
-                            blurRadius: 5.0,
-                            color: Color(0x48000000),
-                          ),
-                        ],
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    child: Text(
+                      '${widget.course_name} Resources',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.fredokaOne(
+                        textStyle: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xffffffff),
+                          letterSpacing: 2,
+                          fontSize: 18,
+                          shadows: <Shadow>[
+                            Shadow(
+                              offset: Offset(2.0, 2.0),
+                              blurRadius: 5.0,
+                              color: Color(0x48000000),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   )
@@ -92,7 +109,68 @@ class _ResourcesState extends State<Resources> {
       ),
     );
   }
+  Future<void> downloadFile(title, urlPath) async {
+    bool  checkPermission1= (await Permission.storage.status).isGranted;
+    Dio dio = Dio();
 
+
+    // print(checkPermission1);
+    if (checkPermission1 == false) {
+      await Permission.storage.request();
+      checkPermission1=(await Permission.storage.status).isGranted;
+    }
+    if (checkPermission1 == true) {
+      String dirloc = "";
+      if (Platform.isAndroid) {
+        dirloc = "storage/emulated/0/Resource/";
+      } else {
+        dirloc = (await getApplicationDocumentsDirectory()).path;
+      }
+
+      var randid = '${title}  _${random.nextInt(10000)}';
+      try {
+        FileUtils.mkdir([dirloc]);
+        await dio.download('https://demo.trillium-elearing.com$urlPath', dirloc + randid.toString() + ".pdf",
+            onReceiveProgress: (receivedBytes, totalBytes) {
+              setState(() {
+                downloading = true;
+                progress =
+                    ((receivedBytes / totalBytes) * 100).toStringAsFixed(0) + "%";
+              });
+            });
+        setState(() {
+          downloading = false;
+          progress = "Download Completed.";
+          path = dirloc + randid.toString();
+          Fluttertoast.showToast(
+              msg: 'Successfully downloaded $path',
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.BOTTOM,
+              timeInSecForIosWeb: 1);
+        });
+      } catch (e) {
+        print(e);
+        setState(() {
+          downloading = false;
+
+          Fluttertoast.showToast(
+              msg: 'download failed',
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.BOTTOM,
+              timeInSecForIosWeb: 1);
+        });
+
+      }
+
+    } else {
+      setState(() {
+        progress = "Permission Denied!";
+        _onPressed = () {
+          downloadFile(title, 'https://demo.trillium-elearing.com$urlPath');
+        };
+      });
+    }
+  }
   fetchUser() async {
     setState(() {
       isLoading = true;
@@ -181,7 +259,7 @@ class _ResourcesState extends State<Resources> {
   Widget getBody() {
     if (users.contains(null) || users.length < 0 || isLoading) {
       return Center(
-          child: const SpinKitCubeGrid(size: 71.0, color: Color(0xff82C042)));
+          child: const SpinKitDoubleBounce(size: 71.0, color: Color(0xff229546)));
     }
     if (socketException || timeoutException) {
       return Center(
@@ -211,8 +289,32 @@ class _ResourcesState extends State<Resources> {
         ),
       ));
     }
-    return SingleChildScrollView(
-      child: Column(
+    return downloading
+        ? Center(
+      child: Container(
+        height: 120.0,
+        width: 200.0,
+        child: Card(
+          color: Colors.black,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment:  CrossAxisAlignment.center,
+            children: <Widget>[
+              CircularProgressIndicator(),
+              SizedBox(
+                height: 10.0,
+              ),
+              Text(
+                'Downloading File: $progress',
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      ),
+    )
+        : SingleChildScrollView(
+      child:  Column(
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 24, left: 8, right: 8),
@@ -224,7 +326,7 @@ class _ResourcesState extends State<Resources> {
                 myItems1(0xff000000),
               ],
               staggeredTiles: [
-                StaggeredTile.extent(1, 50.0),
+                StaggeredTile.fit(1),
               ],
             ),
           ),
@@ -254,9 +356,13 @@ class _ResourcesState extends State<Resources> {
     DateTime orderTime = DateTime.parse(item['updated_at']).toLocal();
 
     return InkWell(
-      onTap: () => Navigator.of(context).push(
-        new MaterialPageRoute(builder: (_) => new pdftest()),
-      ),
+      onTap: () {
+
+        showDialog(
+          context: context,
+          builder: (BuildContext context ) => _buildrequestPopupDialog(context,  item['resource_title'], item['res_loc']),
+        );
+      },
       child: Card(
         elevation: 3,
         shadowColor: Color(0x502196F3),
@@ -303,4 +409,106 @@ class _ResourcesState extends State<Resources> {
       ),
     );
   }
+
+  Widget _buildrequestPopupDialog(BuildContext context,title, path ) {
+    return new AlertDialog(
+      title: const Text('', style: TextStyle( fontWeight: FontWeight.bold, fontSize: 2)),
+
+      content: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop();
+                  final mimeType = lookupMimeType(path);
+                  print(mimeType);
+                  if(mimeType=='image/png' || mimeType=='image/jpeg' || mimeType=='image/jpg'){
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => new WebViewPage(title: title,
+                            link: "https://demo.trillium-elearing.com"+path)));
+                  }
+                  else
+                  {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => new WebViewPage(
+                                title: title,
+                                link: "https://drive.google.com/viewerng/viewer?embedded=true&url=demo.trillium-elearing.com" + path)));
+                  }
+                },
+                child: Center(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.grid_view, color: Color(0xff229546),),
+                      Text(
+                        '  View',  style: GoogleFonts.roboto(
+                        textStyle: TextStyle(color: Color(0xff000000), fontSize: 20, shadows: <Shadow>[
+                          Shadow(
+                            offset: Offset(1.5, 1.5),
+                            blurRadius: 3.0,
+                            color: Color(0x2D7BA0E0),
+                          ),
+                        ],fontWeight: FontWeight.bold),),),
+                    ],),),),),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Divider(color: Color(0xff229546)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop();
+                  downloadFile(title,path);
+                },
+                child: Align(
+                  alignment: Alignment.center,
+
+                  child: Center(
+                    child: Align(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.download_sharp, color: Color(0xff229546),),
+                          Text(
+                            '  Download File',  style: GoogleFonts.roboto(
+                            textStyle: TextStyle(color: Color(0xff000000), fontSize: 20, shadows: <Shadow>[
+                              Shadow(
+                                offset: Offset(1.5, 1.5),
+                                blurRadius: 3.0,
+                                color: Color(0x2D7BA0E0),
+                              ),
+                            ],fontWeight: FontWeight.bold),),),
+                        ],),),),),),),
+
+
+
+          ],
+        ),
+      ),
+
+      actions: <Widget>[
+        new FlatButton(
+          onPressed: () {
+
+            Navigator.of(context).pop();
+
+
+          },
+          child: const Text('Close', style: TextStyle(color: Color(0xff229546), fontWeight: FontWeight.bold),),
+        ),
+
+      ],
+    );
+  }
+
 }

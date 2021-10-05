@@ -15,18 +15,18 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 //================================================================================
 
-class CourseResources extends StatefulWidget {
+class AddQuestion extends StatefulWidget {
   @override
-  _CourseResourcesState createState() => _CourseResourcesState();
+  _AddQuestionState createState() => _AddQuestionState();
 }
 
-class _CourseResourcesState extends State<CourseResources> {
+class _AddQuestionState extends State<AddQuestion> {
   _getRequests() async {
     setState(() {
       Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
               builder: (BuildContext context) => HomePage(loginVerified: true)),
-          (Route<dynamic> route) => false);
+              (Route<dynamic> route) => false);
     });
   }
 
@@ -37,6 +37,7 @@ class _CourseResourcesState extends State<CourseResources> {
   bool socketException = false;
   bool catchException = false;
   double Balance = 0;
+  final TextEditingController QuestionController = new TextEditingController();
   @override
   void initState() {
     // TODO: implement initState
@@ -103,6 +104,89 @@ class _CourseResourcesState extends State<CourseResources> {
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           timeInSecForIosWeb: 1);
+    }
+  }
+  FinishAsk(id, question) async {
+    setState(() {
+      isLoading = true;
+    });
+    int timeout=20;
+    try
+    {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      var token = prefs.getString('token');
+      var url = Uri.parse("$httpUrl/api/addMyQuestion");
+      var response = await http.post(url, headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      }, body: {
+        "course_id": "$id",
+        "question_body": question
+      }).timeout(Duration(seconds: timeout));
+      print(response.statusCode);
+      if (response.statusCode == 201) {
+        var items = json.decode(response.body);
+        print("${response.statusCode}");
+        print("${response.body}");
+
+        setState(() {
+          isLoading = false;
+        });
+        Fluttertoast.showToast(
+            msg: "Successfully Added your question",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            timeInSecForIosWeb: 1);
+        Navigator.pop(context,true);
+      } else {
+        print("${response.statusCode}");
+        print("${response.body}");
+        setState(() {
+          isLoading = false;
+        });
+        Fluttertoast.showToast(
+            msg: "The given data was invalid",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            timeInSecForIosWeb: 1);
+      }
+    }
+    on TimeoutException catch (e) {
+      print('Timeout Error: $e');
+      setState(() {
+        isLoading = false;
+        timeoutException = true;
+      });
+      Fluttertoast.showToast(
+          msg: "connection timeout, try again",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1);
+    } on SocketException catch (e) {
+      print('Socket Error: $e');
+      setState(() {
+        isLoading = false;
+
+        socketException = true;
+      });
+      Fluttertoast.showToast(
+          msg: "no connection",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1);
+
+    } on Error catch (e) {
+      print('$e');
+      setState(() {
+        isLoading = false;
+        catchException = true;
+      });
+      Fluttertoast.showToast(
+          msg: "error occurred while loading",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1);
+
     }
   }
 
@@ -178,46 +262,46 @@ class _CourseResourcesState extends State<CourseResources> {
     if (Courses.contains(null) || Courses.length < 0 || isLoading) {
       return Material(
           child: SpinKitDoubleBounce(
-        color: Color(0xff229546),
-        size: 71,
-      ));
+            color: Color(0xff229546),
+            size: 71,
+          ));
     }
     return SingleChildScrollView(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 24, left: 8, right: 8),
-              child: StaggeredGridView.count(
-                shrinkWrap: true,
-                crossAxisCount: 1,
-                physics: ScrollPhysics(),
-                children: <Widget>[
-                  myItems1(0xff000000),
-                ],
-                staggeredTiles: [
-                  StaggeredTile.extent(1, 50.0),
-                ],
-              ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 24, left: 8, right: 8),
+            child: StaggeredGridView.count(
+              shrinkWrap: true,
+              crossAxisCount: 1,
+              physics: ScrollPhysics(),
+              children: <Widget>[
+                myItems1(0xff000000),
+              ],
+              staggeredTiles: [
+                StaggeredTile.extent(1, 50.0),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: StaggeredGridView.countBuilder(
-                shrinkWrap: true,
-                physics: ClampingScrollPhysics(),
-                crossAxisCount: 2,
-                itemCount: Courses.length,
-                itemBuilder: (context, index) {
-                  return getCard(Courses[index]);
-                },
-                staggeredTileBuilder: (int index) =>
-                    StaggeredTile.extent(1, 110.0),
-                mainAxisSpacing: 10.0,
-                crossAxisSpacing: 10.0,
-              ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: StaggeredGridView.countBuilder(
+              shrinkWrap: true,
+              physics: ClampingScrollPhysics(),
+              crossAxisCount: 2,
+              itemCount: Courses.length,
+              itemBuilder: (context, index) {
+                return getCard(Courses[index]);
+              },
+              staggeredTileBuilder: (int index) =>
+                  StaggeredTile.extent(1, 110.0),
+              mainAxisSpacing: 10.0,
+              crossAxisSpacing: 10.0,
             ),
-          ],
-        ),
-      )
+          ),
+        ],
+      ),
+    )
     ;
   }
 
@@ -226,14 +310,12 @@ class _CourseResourcesState extends State<CourseResources> {
     var quantity = item['resource_count'];
 
     return InkWell(
-      onTap: () => Navigator.of(context)
-          .push(
-            new MaterialPageRoute(
-                builder: (_) => new Resources(
-                    course_id: item['course_id'],
-                    course_name: item['courseName'])),
-          )
-          .then((val) => val ? _getRequests() : null),
+      onTap: (){
+        showDialog(
+          context: this.context,
+          builder: (BuildContext context ) => _buildQuestionPopupDialog(context, item['course_id'],  item['courseName']),
+        );
+      },
       child: Material(
         color: Color(0xff229546),
         elevation: 14,
@@ -334,6 +416,89 @@ class _CourseResourcesState extends State<CourseResources> {
           ),
         ],
       ),
+    );
+  }
+  Widget _buildQuestionPopupDialog(BuildContext context,id, title) {
+    return new AlertDialog(
+      title: const Text('', style: TextStyle( fontWeight: FontWeight.bold, fontSize: 2)),
+
+      content: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+
+
+            SizedBox(
+              height: 5,
+            ),
+
+
+            SizedBox(
+              child: Text.rich(
+                TextSpan(
+                  children: <TextSpan>[
+                    TextSpan(
+                        text: 'Ask to $title teacher',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        )),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 250,
+              child: TextField(
+                controller: QuestionController,
+                keyboardType: TextInputType.multiline,
+                maxLines: null,
+                style: TextStyle( fontSize: 17,fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                    labelText: 'Question ...',
+                    labelStyle: TextStyle(
+                        fontSize: 17,
+                        letterSpacing: 1,
+                        fontWeight: FontWeight.bold
+                    )
+                ),
+
+                onChanged: (text){
+
+                  setState(() {
+
+                  });
+                },
+              ),
+            ),
+
+
+
+          ],
+        ),
+      ),
+
+      actions: <Widget>[
+        new FlatButton(
+          onPressed: () {
+
+            Navigator.of(context).pop();
+
+
+          },
+          child: const Text('Close', style: TextStyle(color: Color(0xff229546), fontWeight: FontWeight.bold),),
+        ),
+        new FlatButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            FinishAsk(id, QuestionController.text) ;
+          },
+          child: const Text('Ok' , style: TextStyle(color: Color(0xff82C042), fontWeight: FontWeight.bold)),
+        ),
+
+      ],
     );
   }
 }

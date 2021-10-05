@@ -10,27 +10,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:flutter_html/flutter_html.dart';
+import 'package:html/dom.dart' as dom;
 
 //================================================================================
 
-class CourseResources extends StatefulWidget {
+class NoticeList extends StatefulWidget {
   @override
-  _CourseResourcesState createState() => _CourseResourcesState();
+  _NoticeListState createState() => _NoticeListState();
 }
 
-class _CourseResourcesState extends State<CourseResources> {
+class _NoticeListState extends State<NoticeList> {
   _getRequests() async {
     setState(() {
       Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
               builder: (BuildContext context) => HomePage(loginVerified: true)),
-          (Route<dynamic> route) => false);
+              (Route<dynamic> route) => false);
     });
   }
 
-  List Courses = [];
+  List Notice = [];
   List BalanceArray = [];
   bool isLoading = false;
   bool timeoutException = false;
@@ -52,7 +55,7 @@ class _CourseResourcesState extends State<CourseResources> {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       var token = prefs.getString('token');
-      var url = Uri.parse("$httpUrl/api/getMyCourseResources");
+      var url = Uri.parse("$httpUrl/api/getLatestNotices");
       var response = await http.get(url, headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -62,11 +65,11 @@ class _CourseResourcesState extends State<CourseResources> {
       if (response.statusCode == 200) {
         var items = json.decode(response.body);
         setState(() {
-          Courses = items;
+          Notice = items;
           isLoading = false;
         });
       } else {
-        Courses = [];
+        Notice = [];
         isLoading = false;
       }
     } on TimeoutException catch (e) {
@@ -106,6 +109,7 @@ class _CourseResourcesState extends State<CourseResources> {
     }
   }
 
+
   Material myItems1(int color) {
     return Material(
       color: Color(0xff229546),
@@ -118,7 +122,7 @@ class _CourseResourcesState extends State<CourseResources> {
           bottomRight: Radius.circular(10.0)),
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(2.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
@@ -127,14 +131,14 @@ class _CourseResourcesState extends State<CourseResources> {
                 children: <Widget>[
                   //text
                   Text(
-                    'My Courses',
+                    'Notices',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.fredokaOne(
                       textStyle: TextStyle(
                         fontWeight: FontWeight.w900,
                         color: Color(0xffffffff),
                         letterSpacing: 2,
-                        fontSize: 24,
+                        fontSize: 17,
                         shadows: <Shadow>[
                           Shadow(
                             offset: Offset(2.0, 2.0),
@@ -175,18 +179,19 @@ class _CourseResourcesState extends State<CourseResources> {
   }
 
   Widget getBody() {
-    if (Courses.contains(null) || Courses.length < 0 || isLoading) {
+    if (Notice.contains(null) || Notice.length < 0 || isLoading) {
       return Material(
-          child: SpinKitDoubleBounce(
-        color: Color(0xff229546),
-        size: 71,
-      ));
+          child: SpinKitThreeBounce(
+            color: Color(0xff229546),
+            size: 30,
+          ));
     }
     return SingleChildScrollView(
         child: Column(
+
           children: [
             Padding(
-              padding: const EdgeInsets.only(top: 24, left: 8, right: 8),
+              padding: const EdgeInsets.only(top: 24, left: 8, right: 8, bottom: 8),
               child: StaggeredGridView.count(
                 shrinkWrap: true,
                 crossAxisCount: 1,
@@ -195,91 +200,104 @@ class _CourseResourcesState extends State<CourseResources> {
                   myItems1(0xff000000),
                 ],
                 staggeredTiles: [
-                  StaggeredTile.extent(1, 50.0),
+                  StaggeredTile.extent(1, 30.0),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: StaggeredGridView.countBuilder(
+            ListView.builder(
                 shrinkWrap: true,
                 physics: ClampingScrollPhysics(),
-                crossAxisCount: 2,
-                itemCount: Courses.length,
+                itemCount: Notice.length,
                 itemBuilder: (context, index) {
-                  return getCard(Courses[index]);
-                },
-                staggeredTileBuilder: (int index) =>
-                    StaggeredTile.extent(1, 110.0),
-                mainAxisSpacing: 10.0,
-                crossAxisSpacing: 10.0,
-              ),
-            ),
+                  return getCard(Notice[index]);
+                }),
           ],
         ),
-      )
-    ;
-  }
 
-  InkWell getCard(item) {
-    var courseName = item['courseName'];
-    var quantity = item['resource_count'];
+    );
+  }
+  Widget getCard(item) {
+    var notice_title = item['notice_title'];
+    var f_name = item['f_name'];
+    var type = item['type'];
+    var posted  = item['posted'];
+    var notice_body = item['notice_body'];
+    var dateTimeString = '${(item['created_at'])}';
+    final dateTime = DateTime.parse(dateTimeString).toLocal();
+    final format = DateFormat('yyyy-MM-dd h:mm a');
+    final clockString = format.format(dateTime);
+
+    //=====================================
 
     return InkWell(
-      onTap: () => Navigator.of(context)
-          .push(
-            new MaterialPageRoute(
-                builder: (_) => new Resources(
-                    course_id: item['course_id'],
-                    course_name: item['courseName'])),
-          )
-          .then((val) => val ? _getRequests() : null),
-      child: Material(
-        color: Color(0xff229546),
-        elevation: 14,
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) => _buildPopupDialog(context, type,  notice_body),
+        );
+      },
+      child: Card(
+        elevation: 3,
         shadowColor: Color(0x502196F3),
-        borderRadius: BorderRadius.only(
-            topRight: Radius.circular(10.0),
-            topLeft: Radius.circular(10.0),
-            bottomLeft: Radius.circular(10.0),
-            bottomRight: Radius.circular(10.0)),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: ListTile(
+            leading: Icon(Icons.message, color: Color(0xff229546)),
+            title: Row(
               children: <Widget>[
+                SizedBox(
+                  width: 10,
+                ),
                 Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    //text
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.33,
-                        child: Text(
-                          courseName,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.fredokaOne(
-                            textStyle: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xffffffff),
-                              letterSpacing: 1,
-                              fontSize: 17,
-                              shadows: <Shadow>[
-                                Shadow(
-                                  offset: Offset(2.0, 2.0),
-                                  blurRadius: 5.0,
-                                  color: Color(0x48000000),
-                                ),
-                              ],
-                            ),
-                          ),
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width - 130,
+                      child: Text.rich(
+                        TextSpan(
+                          children: <TextSpan>[
+                            TextSpan(
+                                text: notice_title,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                )),
+                          ],
                         ),
                       ),
                     ),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width - 130,
+                      child: Text.rich(
+                        TextSpan(
 
-                    //Icon
+                          children: <TextSpan>[
+                            TextSpan(
+                                text: "$type: ",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                )),
+                            TextSpan(
+                                text: f_name,
+                                style: TextStyle(
+                                  color: Colors.grey,
+
+                                )),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    Text(
+                      '$posted',
+                      style: TextStyle(color: Colors.grey),
+                    )
                   ],
                 )
               ],
@@ -289,6 +307,7 @@ class _CourseResourcesState extends State<CourseResources> {
       ),
     );
   }
+
 
   Widget NoConnectionBody() {
     return Center(
@@ -334,6 +353,65 @@ class _CourseResourcesState extends State<CourseResources> {
           ),
         ],
       ),
+    );
+  }
+  Widget _buildPopupDialog(BuildContext context,type, notice_body) {
+    return new AlertDialog(
+
+
+      content: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: Padding(
+            padding: const EdgeInsets.only(left: 8, top: 16, right: 8, bottom: 8),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16,),
+                  child: Icon(Icons.format_quote, color: Colors.lightGreen, size: 40,),
+                ),
+
+                Center(
+                  child: SingleChildScrollView(
+                    child: Html(
+                      data: """
+                $notice_body
+                """,
+                      padding: EdgeInsets.all(8.0),
+                      onLinkTap: (url) {
+                        print("Opening $url...");
+                      },
+                      customRender: (node, children) {
+                        if (node is dom.Element) {
+                          switch (node.localName) {
+                            case "custom_tag": // using this, you can handle custom tags in your HTML
+                              return Column(children: children);
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                )
+              ],
+            )
+        ),
+      ),
+
+
+
+
+
+      actions: <Widget>[
+
+        new FlatButton(
+          onPressed: () {
+
+
+            Navigator.of(context).pop();
+          },
+          child: const Text('close' , style: TextStyle(color: Color(0xff000000), fontWeight: FontWeight.bold)),
+        ),
+
+      ],
     );
   }
 }
