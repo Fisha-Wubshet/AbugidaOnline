@@ -47,6 +47,7 @@ class _QuizChoiceState extends State<QuizChoice> {
   var take_id;
   List correctAnswers = [];
   bool isLoading = false;
+  bool _isLoading = false;
   bool timeoutException = false;
   bool socketException = false;
   bool catchException = false;
@@ -75,7 +76,7 @@ class _QuizChoiceState extends State<QuizChoice> {
   double seconds;
   var score;
 
-  FinishExam(take_id, type) async {
+  FinishExam(take, type) async {
     setState(() {
       isLoading = true;
       print( "question_id: " "$QuestionsId, "
@@ -244,7 +245,7 @@ examStart() async {
   }
   takeExams() async {
     setState(() {
-      isLoading = true;
+      _isLoading = true;
     });
     int timeout = 20;
     try {
@@ -258,14 +259,15 @@ examStart() async {
         'Authorization': 'Bearer $token',
       }).timeout(Duration(seconds: timeout));
       print(response.body);
+      print('bbbbbbbbbbbb');
 print(response.statusCode);
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201||response.statusCode == 200) {
         var items = json.decode(response.body);
         setState(() {
           take_id = items['id'];
           print('aaaaaaaaaaaaaaaaaaaaaaaaaa');
           print(take_id);
-          isLoading = false;
+          _isLoading = false;
 
         });
       } else if (response.statusCode == 401) {
@@ -276,15 +278,15 @@ print(response.statusCode);
             timeInSecForIosWeb: 1);
       } else {
         setState(() {
-          allQuestion = [];
-          isLoading = false;
+
+          _isLoading = false;
 
         });
       }
     } on TimeoutException catch (e) {
       print('Timeout Error: $e');
       setState(() {
-        isLoading = false;
+        _isLoading = false;
         timeoutException = true;
       });
       Fluttertoast.showToast(
@@ -295,7 +297,7 @@ print(response.statusCode);
     } on SocketException catch (e) {
       print('Socket Error: $e');
       setState(() {
-        isLoading = false;
+        _isLoading = false;
 
         socketException = true;
       });
@@ -307,7 +309,7 @@ print(response.statusCode);
     } on Error catch (e) {
       print('$e');
       setState(() {
-        isLoading = false;
+        _isLoading = false;
         catchException = true;
       });
       Fluttertoast.showToast(
@@ -401,7 +403,7 @@ print(response.statusCode);
 
   @override
   Widget build(BuildContext context) {
-    if ( isLoading || examtimeloader) {
+    if ( isLoading || examtimeloader || _isLoading ) {
       return Material(
           child: SpinKitDoubleBounce(
             color: Color(0xff229546),
@@ -412,185 +414,133 @@ print(response.statusCode);
         appBar: AppBar(
           title: Text('${widget.exam_name}'),
         ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 16, left: 8, right: 8, bottom: 8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: <Widget>[
-                if(timeloding)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16, left: 8, right: 8, bottom: 16),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        top: BorderSide(width: 1.0, color: Color(0x45229546)),
-                        left: BorderSide(width: 1.0, color: Color(0x45229546)),
-                        right: BorderSide(width: 1.0, color: Color(0x45229546)),
-                        bottom: BorderSide(width: 1.0, color: Color(0x45229546)),
+        body: SingleChildScrollView(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 16, left: 8, right: 8, bottom: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: <Widget>[
+                  if(timeloding)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16, left: 8, right: 8, bottom: 16),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(width: 1.0, color: Color(0x45229546)),
+                          left: BorderSide(width: 1.0, color: Color(0x45229546)),
+                          right: BorderSide(width: 1.0, color: Color(0x45229546)),
+                          bottom: BorderSide(width: 1.0, color: Color(0x45229546)),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.timer_outlined,
+                              size: 50,
+                              color: Color(0xff229546),
+                            ),
+                            Text(
+                              '${hours.toInt()} : ${minutes.toInt()} : ${seconds.toInt()}',
+                                style: GoogleFonts.roboto(
+                                  textStyle: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: .5,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                  ),
+                  if(allQuestion.length!=0)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+
+                        'Q${Question_no+1}. ${allQuestion[Question_no]['question']} (${allQuestion[Question_no]['score']} Marks)',
+                        textAlign: TextAlign.left,
+                        style: GoogleFonts.roboto(
+                            textStyle: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: .5,
+                              fontSize: 20,
+                            ),
+                          ),
+                      ),
+                    ),
+                  ),
+                  for(var i = 0; i < allQuestion[Question_no]['answers'].length; i++)
+                    Container(
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.timer_outlined,
-                            size: 50,
-                            color: Color(0xff229546),
-                          ),
-                          Text(
-                            '${hours.toInt()} : ${minutes.toInt()} : ${seconds.toInt()}',
-                              style: GoogleFonts.roboto(
-                                textStyle: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: .5,
-                                  fontSize: 20,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: <Widget>[
+                          Radio(
+                              value: '${allQuestion[Question_no]['answers'][i]['id']}',
+                              groupValue: picker,
+                              onChanged: (val) {
+                                picker = val;
+                                setState(() {
+                                  print(picker);
+                                  correctAnswers[Question_no]=val;
+                                  print(correctAnswers);
+                                });
+                              }),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width*0.7,
+                            child: Text(
+                              allQuestion[Question_no]['answers'][i]['content'],
+                                style: GoogleFonts.roboto(
+                                  textStyle: TextStyle(
+                                    color: Colors.black,
+                                    letterSpacing: .5,
+                                    fontSize: 20,
+                                  ),
                                 ),
-                              ),
-                          ),
+                            ),
+                          )
                         ],
                       ),
                     ),
-                  ),
-                ),
-                if(allQuestion.length!=0)
-                Text(
-                  'Q${Question_no+1}. ${allQuestion[Question_no]['question']} (${allQuestion[Question_no]['score']} Marks)',
-                    style: GoogleFonts.roboto(
-                      textStyle: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: .5,
-                        fontSize: 20,
-                      ),
-                    ),
-                ),
-                for(var i = 0; i < allQuestion[Question_no]['answers'].length; i++)
-                  Container(
+                  if(Question_no>0)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
-                      children: <Widget>[
-                        Radio(
-                            value: '${allQuestion[Question_no]['answers'][i]['id']}',
-                            groupValue: picker,
-                            onChanged: (val) {
-                              picker = val;
-                              setState(() {
-                                print(picker);
-                                correctAnswers[Question_no]=val;
-                                print(correctAnswers);
-                              });
-                            }),
-                        SizedBox(
-                          width: MediaQuery.of(context).size.width*0.7,
-                          child: Text(
-                            allQuestion[Question_no]['answers'][i]['content'],
-                              style: GoogleFonts.roboto(
-                                textStyle: TextStyle(
-                                  color: Colors.black,
-                                  letterSpacing: .5,
-                                  fontSize: 20,
-                                ),
-                              ),
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                if(Question_no>0)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
+                      children: [
 
-                      InkWell(
-                        onTap: () {
-                          setState(() {
-                            Question_no= Question_no - 1;
-                            print(correctAnswers);
-                            picker = correctAnswers[Question_no];
-                          });
-                        },
-                        child: Icon(
-                          Icons.arrow_back_ios_sharp,
-                          size: 60,
-                          color: Color(0xff229546),
-                        ),
-                      ),
-                      if(Question_no!=allQuestion.length-1)
-                      InkWell(
-                        onTap: () {
-                          setState(() {
-                            Question_no=Question_no + 1;
-                            picker= correctAnswers[Question_no];
-                            print(correctAnswers);
-                          });
-
-                        },
-                        child: Icon(
-                          Icons.arrow_forward_ios_outlined,
-                          size: 60,
-                          color: Color(0xff229546),
-                        ),
-                      ),
-                      if(Question_no==allQuestion.length-1)
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              FinishExam(take_id, 'finished');
-                            });
-
-                          },
-                          child: Align(
-                            alignment: Alignment.center,
-                            child: Container(
-
-                              width: 150,
-                              decoration: BoxDecoration(
-                                color: Color(0xff229546),
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(20),
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Center(
-                                  child: Align(
-                                    child: Text(
-                                      'Finish',  style: GoogleFonts.fredokaOne(
-                                      textStyle: TextStyle(color: Colors.white,letterSpacing: .5, fontSize: 17,),),),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if(Question_no==0)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      if(Question_no!=allQuestion.length-1)
                         InkWell(
                           onTap: () {
-                            //-------------------------------------------------
-
-
                             setState(() {
-                              Question_no=Question_no + 1;
+                              Question_no= Question_no - 1;
                               print(correctAnswers);
                               picker = correctAnswers[Question_no];
-
+                            });
+                          },
+                          child: Icon(
+                            Icons.arrow_back_ios_sharp,
+                            size: 60,
+                            color: Color(0xff229546),
+                          ),
+                        ),
+                        if(Question_no!=allQuestion.length-1)
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              Question_no=Question_no + 1;
+                              picker= correctAnswers[Question_no];
+                              print(correctAnswers);
                             });
 
                           },
@@ -600,44 +550,154 @@ print(response.statusCode);
                             color: Color(0xff229546),
                           ),
                         ),
-                    ],
-                  ),
-                ),
-                if(allQuestion.length==1)
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        FinishExam(take_id, 'finished');
-                      });
+                        if(Question_no==allQuestion.length-1)
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                bool checkNoAnswer=false;
+                                int sum=0;
+                                for(int i=0; i<correctAnswers.length;i++){
+                                  if(correctAnswers[i]==null){
+                                    sum++;
+                                  }
+                                }
+                                checkNoAnswer=correctAnswers.contains(null);
 
-                    },
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Container(
-                        height: 50,
-                        width: 150,
-                        decoration: BoxDecoration(
-                          color: Color(0xff229546),
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(20),
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Center(
+                                if(!checkNoAnswer)
+                                {
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (BuildContext context) => _buildSurePopupDialog(context, take_id, 'full', sum, 'finished'),
+                                  );
+                                }
+                                else{
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (BuildContext context) => _buildSurePopupDialog(context, take_id, 'miss', sum, 'finished'),
+                                  );
+                                }
+                              });
+
+                            },
                             child: Align(
-                              child: Text(
-                                'Finish',  style: GoogleFonts.fredokaOne(
-                                textStyle: TextStyle(color: Colors.white,letterSpacing: .5, fontSize: 17,),),),
+                              alignment: Alignment.center,
+                              child: Container(
+
+                                width: 150,
+                                decoration: BoxDecoration(
+                                  color: Color(0xff229546),
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(20),
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Center(
+                                    child: Align(
+                                      child: Text(
+                                        'Finish',  style: GoogleFonts.fredokaOne(
+                                        textStyle: TextStyle(color: Colors.white,letterSpacing: .5, fontSize: 17,),),),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if(Question_no==0)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if(Question_no!=allQuestion.length-1)
+                          InkWell(
+                            onTap: () {
+                              //-------------------------------------------------
+
+
+                              setState(() {
+                                Question_no=Question_no + 1;
+                                print(correctAnswers);
+                                picker = correctAnswers[Question_no];
+
+                              });
+
+                            },
+                            child: Icon(
+                              Icons.arrow_forward_ios_outlined,
+                              size: 60,
+                              color: Color(0xff229546),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if(allQuestion.length==1)
+                    GestureDetector(
+                      onTap: () {
+
+                        setState(() {
+                          bool checkNoAnswer=false;
+                          int sum=0;
+                          for(int i=0; i<correctAnswers.length;i++){
+                            if(correctAnswers[i]==null){
+                              sum++;
+                            }
+                          }
+                          checkNoAnswer=correctAnswers.contains(null);
+
+                          if(!checkNoAnswer)
+                          {
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) => _buildSurePopupDialog(context, take_id, 'full', sum, 'finished'),
+                            );
+                          }
+                          else{
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) => _buildSurePopupDialog(context, take_id, 'miss', sum, 'finished'),
+                            );
+                          }
+                        });
+
+
+                      },
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Container(
+                          height: 50,
+                          width: 150,
+                          decoration: BoxDecoration(
+                            color: Color(0xff229546),
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(20),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Center(
+                              child: Align(
+                                child: Text(
+                                  'Finish',  style: GoogleFonts.fredokaOne(
+                                  textStyle: TextStyle(color: Colors.white,letterSpacing: .5, fontSize: 17,),),),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
 
 
-              ],
+                ],
+              ),
             ),
           ),
         ));
@@ -745,6 +805,91 @@ print(response.statusCode);
                 style: TextStyle(
                     color: Color(0xffffffff), fontWeight: FontWeight.bold)),
           ),
+        ],
+      ),
+    );
+  }
+  Widget _buildSurePopupDialog(BuildContext context, take_id, status, sum ,finishedstatus) {
+    return WillPopScope(
+      onWillPop: () {
+        Navigator.of(context).pop();
+      },
+      child: new AlertDialog(
+
+
+        content: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: Padding(
+              padding:
+              const EdgeInsets.only(left: 8, top: 16, right: 8, bottom: 8),
+              child: Column(
+                children: [
+                  if(status=='miss')
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: 16,
+                      ),
+                      child: Text.rich(
+                        TextSpan(
+                          children: <TextSpan>[
+
+                            TextSpan(
+                                text: 'you have $sum unanswered question!',
+                                style: TextStyle(
+                                  color:Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                )),
+
+                            TextSpan(
+                                text: ' Are you sure you want to submit you solution ?',
+                                style: TextStyle(
+
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                )),
+
+                          ],
+                        ),
+                      ),
+
+
+                    ),
+                  if(status=='full')
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: 16,
+                      ),
+                      child: Text('Are you sure you want to submit you solution?',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 19,
+                          )),
+                    ),
+
+                ],
+              )),
+        ),
+        actions: <Widget>[
+          new FlatButton(
+            onPressed: () {
+
+              Navigator.of(context).pop();
+
+
+            },
+            child: const Text('Close', style: TextStyle(color: Color(0xff229546), fontWeight: FontWeight.bold),),
+          ),
+          new FlatButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              FinishExam(take_id, finishedstatus);
+            },
+            child: const Text('Ok',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: Color(0xff229546))),
+          ),
+
         ],
       ),
     );

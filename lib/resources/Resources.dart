@@ -1,6 +1,10 @@
 import 'dart:math';
 
+import 'package:abugida_online/ImageViewer/ImageViewer.dart';
+import 'package:abugida_online/download/DownloadFolderAppBar.dart';
+import 'package:abugida_online/download/downloadFolder.dart';
 import 'package:abugida_online/pdftest.dart';
+import 'package:abugida_online/utils/ObscuringTextEditingController.dart';
 import 'package:abugida_online/utils/httpUrl.dart';
 import 'package:abugida_online/webview.dart';
 import 'package:dio/dio.dart';
@@ -46,10 +50,11 @@ class _ResourcesState extends State<Resources> {
   var path = "No Data";
   static final Random random = Random();
   var _onPressed;
-  final imgUrl = "https://demo.trillium-elearing.com/storage/materials/Photosynthesis_1606674159.pdf";
+
   bool timeoutException = false;
   bool socketException = false;
   bool catchException = false;
+  bool checkPermission1;
   @override
   void initState() {
     // TODO: implement initState
@@ -109,17 +114,83 @@ class _ResourcesState extends State<Resources> {
       ),
     );
   }
+  checkDownload(Id) async {
+    setState(() {
+      isLoading = true;
+    });
+    int timeout = 20;
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      var token = prefs.getString('token');
+
+      var url = Uri.parse("$httpUrl/api/resDowCount/$Id");
+      var response = await http.get(url, headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      }).timeout(Duration(seconds: timeout));
+      print(response.statusCode);
+      print(response.body);
+      if (response.statusCode == 200) {
+
+
+        print("${response.statusCode}");
+        print("${response.body}");
+
+
+        refreshList();
+        print(response.body);
+      }
+      if (response.statusCode == 422) {
+
+        Navigator.pop(this.context, true);
+        setState(() {
+          isLoading = false;
+        });
+        print(response.body);
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        print(response.body);
+      }
+    } on TimeoutException catch (e) {
+      print('Timeout Error: $e');
+      setState(() {
+        isLoading = false;
+      });
+
+    } on SocketException catch (e) {
+      print('Socket Error: $e');
+      setState(() {
+        isLoading = false;
+      });
+
+    } on Error catch (e) {
+      print('$e');
+      setState(() {
+        isLoading = false;
+      });
+
+    }
+  }
   Future<void> downloadFile(title, urlPath) async {
-    bool  checkPermission1= (await Permission.storage.status).isGranted;
+    checkPermission1= (await Permission.manageExternalStorage.status).isGranted;
+    bool checkPermission= (await Permission.storage.status).isGranted;
     Dio dio = Dio();
 
-
+    var mimeType = lookupMimeType(urlPath);
+    var filetypeexten= urlPath.split(".");
+    print(filetypeexten[filetypeexten.length-1]);
     // print(checkPermission1);
-    if (checkPermission1 == false) {
+    if (checkPermission1 == false && checkPermission == false) {
       await Permission.storage.request();
-      checkPermission1=(await Permission.storage.status).isGranted;
+      await Permission.manageExternalStorage.request();
+
+      checkPermission1=(await Permission.manageExternalStorage.status).isGranted;
+      checkPermission= (await Permission.storage.status).isGranted;
     }
-    if (checkPermission1 == true) {
+    if (checkPermission1 == true || checkPermission== true) {
       String dirloc = "";
       if (Platform.isAndroid) {
         dirloc = "storage/emulated/0/Resource/";
@@ -128,9 +199,10 @@ class _ResourcesState extends State<Resources> {
       }
 
       var randid = '${title}  _${random.nextInt(10000)}';
+
       try {
         FileUtils.mkdir([dirloc]);
-        await dio.download('https://demo.trillium-elearing.com$urlPath', dirloc + randid.toString() + ".pdf",
+        await dio.download('$httpUrl$urlPath', dirloc + randid.toString() + ".${filetypeexten[filetypeexten.length-1]}",
             onReceiveProgress: (receivedBytes, totalBytes) {
               setState(() {
                 downloading = true;
@@ -159,8 +231,8 @@ class _ResourcesState extends State<Resources> {
               gravity: ToastGravity.BOTTOM,
               timeInSecForIosWeb: 1);
         });
-
       }
+
 
     } else {
       setState(() {
@@ -252,6 +324,25 @@ class _ResourcesState extends State<Resources> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: new AppBar(
+        elevation: 2,
+        backgroundColor: Color(0xff229546),
+        shadowColor: Color(0x502196F3),
+        title: Text('${widget.course_name} Resources',
+            style: TextStyle(
+                color: new Color(0xffffffff),
+                fontSize: 20,
+                fontWeight: FontWeight.bold)),
+        actions: <Widget>[
+          new FlatButton(onPressed: (){
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => DownloadFolderAppBar()));
+          }, child: Row(children: <Widget>[
+            new Icon(Icons.arrow_circle_down, color: Color(0xffffffff), size: 30,),
+          ],)),
+
+        ],
+      ),
       body: RefreshIndicator(onRefresh: refreshList, child: getBody()),
     );
   }
@@ -261,6 +352,7 @@ class _ResourcesState extends State<Resources> {
       return Center(
           child: const SpinKitDoubleBounce(size: 71.0, color: Color(0xff229546)));
     }
+
     if (socketException || timeoutException) {
       return Center(
           child: Padding(
@@ -289,6 +381,24 @@ class _ResourcesState extends State<Resources> {
         ),
       ));
     }
+    if(users.length==0) {
+      return Center(
+        child: SingleChildScrollView(
+          child: Container(
+            width: 200,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Container(
+                  width: 300,
+                  child: Image(image: AssetImage('assets/Nocontant.png'),),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return downloading
         ? Center(
       child: Container(
@@ -313,32 +423,13 @@ class _ResourcesState extends State<Resources> {
         ),
       ),
     )
-        : SingleChildScrollView(
-      child:  Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 24, left: 8, right: 8),
-            child: StaggeredGridView.count(
-              shrinkWrap: true,
-              crossAxisCount: 1,
-              physics: ScrollPhysics(),
-              children: <Widget>[
-                myItems1(0xff000000),
-              ],
-              staggeredTiles: [
-                StaggeredTile.fit(1),
-              ],
-            ),
-          ),
-          ListView.builder(
+        : ListView.builder(
               shrinkWrap: true,
               physics: ClampingScrollPhysics(),
               itemCount: users.length,
               itemBuilder: (context, index) {
                 return getCard(users[index]);
-              }),
-        ],
-      ),
+              }
     );
   }
 
@@ -360,7 +451,7 @@ class _ResourcesState extends State<Resources> {
 
         showDialog(
           context: context,
-          builder: (BuildContext context ) => _buildrequestPopupDialog(context,  item['resource_title'], item['res_loc']),
+          builder: (BuildContext context ) => _buildrequestPopupDialog(context,  item['resource_title'], item['res_loc'],item['id'] ),
         );
       },
       child: Card(
@@ -410,7 +501,7 @@ class _ResourcesState extends State<Resources> {
     );
   }
 
-  Widget _buildrequestPopupDialog(BuildContext context,title, path ) {
+  Widget _buildrequestPopupDialog(BuildContext context,title, path, Id ) {
     return new AlertDialog(
       title: const Text('', style: TextStyle( fontWeight: FontWeight.bold, fontSize: 2)),
 
@@ -425,12 +516,22 @@ class _ResourcesState extends State<Resources> {
               child: GestureDetector(
                 onTap: () {
                   Navigator.of(context).pop();
+                  checkDownload(Id);
                   final mimeType = lookupMimeType(path);
                   print(mimeType);
                   if(mimeType=='image/png' || mimeType=='image/jpeg' || mimeType=='image/jpg'){
                     Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => new WebViewPage(title: title,
-                            link: "https://demo.trillium-elearing.com"+path)));
+                        MaterialPageRoute(builder: (context) => new ImageViewer(title: title,
+                            link: httpUrl +path)));
+                  }
+                  else if(mimeType=='application/pdf')
+                  {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => new pdftest(
+                                title: title,
+                                link: path)));
                   }
                   else
                   {
@@ -439,7 +540,7 @@ class _ResourcesState extends State<Resources> {
                         MaterialPageRoute(
                             builder: (context) => new WebViewPage(
                                 title: title,
-                                link: "https://drive.google.com/viewerng/viewer?embedded=true&url=demo.trillium-elearing.com" + path)));
+                                link: "http://view.officeapps.live.com/op/view.aspx?src=$httpUrl" + path)));
                   }
                 },
                 child: Center(
@@ -467,6 +568,7 @@ class _ResourcesState extends State<Resources> {
               child: GestureDetector(
                 onTap: () {
                   Navigator.of(context).pop();
+                  checkDownload(Id);
                   downloadFile(title,path);
                 },
                 child: Align(

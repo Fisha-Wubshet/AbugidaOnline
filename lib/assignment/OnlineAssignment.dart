@@ -51,7 +51,7 @@ class _OnlineAssignmentState extends State<OnlineAssignment> {
   bool socketException = false;
   bool catchException = false;
   var myDateTimeFromInternet;
-  bool examtimeloader = false;
+  bool _isLoading= false;
 
   @override
   void initState() {
@@ -59,7 +59,6 @@ class _OnlineAssignmentState extends State<OnlineAssignment> {
     super.initState();
     this.fetchAllQuestion();
     this.takeExams();
-    examStart();
 
 
   }
@@ -162,21 +161,7 @@ class _OnlineAssignmentState extends State<OnlineAssignment> {
 
     }
   }
-  examStart() async {
 
-    if(widget.exam_type!='Assignment') {
-      examtimeloader=true;
-      myDateTimeFromInternet = await dateTimeFromInternet();
-      _start = (widget.ends_at.millisecondsSinceEpoch -
-          myDateTimeFromInternet.millisecondsSinceEpoch) /
-          1;
-      duration = _start;
-
-      print('========================================');
-      print(duration);
-
-    }
-  }
 
   int daysBetween(DateTime from, DateTime to) {
     from = DateTime(from.year, from.month, from.day, from.hour,from.minute, from.second);
@@ -185,7 +170,7 @@ class _OnlineAssignmentState extends State<OnlineAssignment> {
   }
   takeExams() async {
     setState(() {
-      isLoading = true;
+      _isLoading = true;
     });
     int timeout = 20;
     try {
@@ -200,13 +185,13 @@ class _OnlineAssignmentState extends State<OnlineAssignment> {
       }).timeout(Duration(seconds: timeout));
       print(response.body);
       print(response.statusCode);
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 ||response.statusCode == 200) {
         var items = json.decode(response.body);
         setState(() {
           take_id = items['id'];
           print('aaaaaaaaaaaaaaaaaaaaaaaaaa');
           print(take_id);
-          isLoading = false;
+          _isLoading = false;
 
         });
       } else if (response.statusCode == 401) {
@@ -217,15 +202,13 @@ class _OnlineAssignmentState extends State<OnlineAssignment> {
             timeInSecForIosWeb: 1);
       } else {
         setState(() {
-          allQuestion = [];
-          isLoading = false;
-
+          _isLoading = false;
         });
       }
     } on TimeoutException catch (e) {
       print('Timeout Error: $e');
       setState(() {
-        isLoading = false;
+        _isLoading = false;
         timeoutException = true;
       });
       Fluttertoast.showToast(
@@ -236,7 +219,7 @@ class _OnlineAssignmentState extends State<OnlineAssignment> {
     } on SocketException catch (e) {
       print('Socket Error: $e');
       setState(() {
-        isLoading = false;
+        _isLoading = false;
 
         socketException = true;
       });
@@ -248,7 +231,7 @@ class _OnlineAssignmentState extends State<OnlineAssignment> {
     } on Error catch (e) {
       print('$e');
       setState(() {
-        isLoading = false;
+        _isLoading = false;
         catchException = true;
       });
       Fluttertoast.showToast(
@@ -280,7 +263,7 @@ class _OnlineAssignmentState extends State<OnlineAssignment> {
         setState(() {
           allQuestion = items;
           for(int i=0; i<allQuestion.length; i++){
-            correctAnswers.add('');
+            correctAnswers.add(null);
             QuestionsId.add(allQuestion[i]['question_id']);
           }
           picker = correctAnswers[0];
@@ -342,7 +325,7 @@ class _OnlineAssignmentState extends State<OnlineAssignment> {
 
   @override
   Widget build(BuildContext context) {
-    if ( isLoading && examtimeloader) {
+    if ( isLoading||_isLoading) {
       return Material(
           child: SpinKitDoubleBounce(
             color: Color(0xff229546),
@@ -353,186 +336,253 @@ class _OnlineAssignmentState extends State<OnlineAssignment> {
         appBar: AppBar(
           title: Text('${widget.exam_name}'),
         ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
+        body: SingleChildScrollView(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: <Widget>[
 
-              Icon(
-                Icons.lightbulb_outline,
-                size: 100,
-                color: Colors.red,
-              ),
-              if(allQuestion.length!=0)
-                Text(
-                  'Q${Question_no+1}. ${allQuestion[Question_no]['question']} (${allQuestion[Question_no]['score']} Marks)',
-                  style: TextStyle(fontSize: 24),
-                ),
-              for(var i = 0; i < allQuestion[Question_no]['answers'].length; i++)
-                Container(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      Radio(
-                          value: '${allQuestion[Question_no]['answers'][i]['id']}',
-                          groupValue: picker,
-                          onChanged: (val) {
-                            picker = val;
-                            setState(() {
-                              print(picker);
-                              correctAnswers[Question_no]=val;
-                              print(correctAnswers);
-                            });
-                          }),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width*0.7,
+                  Icon(
+                    Icons.lightbulb_outline,
+                    size: 70,
+                    color: Color(0xff229546),
+                  ),
+                  if(allQuestion.length!=0)
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
                         child: Text(
-                          allQuestion[Question_no]['answers'][i]['content'],
-                          style: TextStyle(fontSize: 24),
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-              if(Question_no>0)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-
-                      InkWell(
-                        onTap: () {
-                          setState(() {
-                            Question_no= Question_no - 1;
-                            print(correctAnswers);
-                            picker = correctAnswers[Question_no];
-                          });
-                        },
-                        child: Icon(
-                          Icons.arrow_back_ios_sharp,
-                          size: 60,
-                          color: Colors.red,
-                        ),
-                      ),
-                      if(Question_no!=allQuestion.length-1)
-                        InkWell(
-                          onTap: () {
-                            setState(() {
-                              Question_no=Question_no + 1;
-                              picker= correctAnswers[Question_no];
-                              print(correctAnswers);
-                            });
-
-                          },
-                          child: Icon(
-                            Icons.arrow_forward_ios_outlined,
-                            size: 60,
-                            color: Colors.red,
-                          ),
-                        ),
-                      if(Question_no==allQuestion.length-1)
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            FinishExam(take_id);
-                          });
-
-                        },
-                        child: Align(
-                          alignment: Alignment.center,
-                          child: Container(
-                            height: 50,
-                            width: 150,
-                            decoration: BoxDecoration(
-                              color: Color(0xff229546),
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(20),
-                              ),
+                          'Q${Question_no+1}. ${allQuestion[Question_no]['question']} (${allQuestion[Question_no]['score']} Marks)',
+                          style: GoogleFonts.roboto(
+                            textStyle: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: .5,
+                              fontSize: 20,
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Center(
-                                child: Align(
-                                  child: Text(
-                                    'Finish',  style: GoogleFonts.fredokaOne(
-                                    textStyle: TextStyle(color: Colors.white,letterSpacing: .5, fontSize: 17,),),),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if(Question_no==0)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      if(Question_no!=allQuestion.length-1)
-                        InkWell(
-                          onTap: () {
-                            //-------------------------------------------------
-
-
-                            setState(() {
-                              Question_no=Question_no + 1;
-                              print(correctAnswers);
-                              picker = correctAnswers[Question_no];
-
-                            });
-
-                          },
-                          child: Icon(
-                            Icons.arrow_forward_ios_outlined,
-                            size: 60,
-                            color: Colors.red,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              if(allQuestion.length==1)
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      FinishExam(take_id);
-                    });
-
-                  },
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      height: 50,
-                      width: 150,
-                      decoration: BoxDecoration(
-                        color: Color(0xff229546),
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(20),
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Center(
-                          child: Align(
-                            child: Text(
-                              'Finish',  style: GoogleFonts.fredokaOne(
-                              textStyle: TextStyle(color: Colors.white,letterSpacing: .5, fontSize: 17,),),),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-            ],
+                  for(var i = 0; i < allQuestion[Question_no]['answers'].length; i++)
+                    Container(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: <Widget>[
+                          Radio(
+                              value: '${allQuestion[Question_no]['answers'][i]['id']}',
+                              groupValue: picker,
+                              onChanged: (val) {
+                                picker = val;
+                                setState(() {
+                                  print(picker);
+                                  correctAnswers[Question_no]=val;
+                                  print(correctAnswers);
+                                });
+                              }),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width*0.7,
+                            child: Text(
+                              allQuestion[Question_no]['answers'][i]['content'],
+                              style: GoogleFonts.roboto(
+                                textStyle: TextStyle(
+                                  color: Colors.black,
+                                  letterSpacing: .5,
+                                  fontSize: 20,
+                                ),
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                  if(Question_no>0)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                Question_no= Question_no - 1;
+                                print(correctAnswers);
+                                picker = correctAnswers[Question_no];
+                              });
+                            },
+                            child: Icon(
+                              Icons.arrow_back_ios_sharp,
+                              size: 60,
+                              color: Color(0xff229546),
+                            ),
+                          ),
+                          if(Question_no!=allQuestion.length-1)
+                            InkWell(
+                              onTap: () {
+                                setState(() {
+                                  Question_no=Question_no + 1;
+                                  picker= correctAnswers[Question_no];
+                                  print(correctAnswers);
+                                });
+
+                              },
+                              child: Icon(
+                                Icons.arrow_forward_ios_outlined,
+                                size: 60,
+                                color: Color(0xff229546),
+                              ),
+                            ),
+                          if(Question_no==allQuestion.length-1)
+                          GestureDetector(
+                            onTap: () {
+    bool checkNoAnswer=false;
+    int sum=0;
+    for(int i=0; i<correctAnswers.length;i++){
+      if(correctAnswers[i]==null){
+          sum++;
+      }
+    }
+    print(correctAnswers.contains(null));
+    checkNoAnswer=correctAnswers.contains(null);
+
+    if(checkNoAnswer==false)
+    {
+    showDialog(
+    context: context,
+    builder: (BuildContext context) => _buildSurePopupDialog(context, take_id, 'full', sum),
+    );
+    }
+    if(checkNoAnswer==true){
+    showDialog(
+    context: context,
+    builder: (BuildContext context) => _buildSurePopupDialog(context, take_id, 'miss', sum),
+    );
+    }
+
+
+    },
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: Container(
+                                height: 50,
+                                width: 150,
+                                decoration: BoxDecoration(
+                                  color: Color(0xff229546),
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(20),
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Center(
+                                    child: Align(
+                                      child: Text(
+                                        'Finish',  style: GoogleFonts.fredokaOne(
+                                        textStyle: TextStyle(color: Colors.white,letterSpacing: .5, fontSize: 17,),),),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if(Question_no==0)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if(Question_no!=allQuestion.length-1)
+                            InkWell(
+                              onTap: () {
+                                //-------------------------------------------------
+                                setState(() {
+                                  Question_no=Question_no + 1;
+                                  print(correctAnswers);
+                                  picker = correctAnswers[Question_no];
+
+                                });
+
+                              },
+                              child: Icon(
+                                Icons.arrow_forward_ios_outlined,
+                                size: 60,
+                                color: Color(0xff229546),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  if(allQuestion.length==1)
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          bool checkNoAnswer=false;
+                          int sum=0;
+                          for(int i=0; i<correctAnswers.length;i++){
+                            if(correctAnswers[i]==null){
+                              sum++;
+                            }
+                          }
+                          checkNoAnswer=correctAnswers.contains(null);
+
+                          if(!checkNoAnswer)
+                          {
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) => _buildSurePopupDialog(context, take_id, 'full', sum),
+                            );
+                          }
+                          else{
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) => _buildSurePopupDialog(context, take_id, 'miss', sum),
+                            );
+                          }
+                        });
+
+                      },
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Container(
+                          height: 50,
+                          width: 150,
+                          decoration: BoxDecoration(
+                            color: Color(0xff229546),
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(20),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Center(
+                              child: Align(
+                                child: Text(
+                                  'Finish',  style: GoogleFonts.fredokaOne(
+                                  textStyle: TextStyle(color: Colors.white,letterSpacing: .5, fontSize: 17,),),),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ));
   }
+
   Widget _buildScorePopupDialog(BuildContext context, score) {
     return WillPopScope(
       onWillPop: () {
@@ -577,6 +627,91 @@ class _OnlineAssignmentState extends State<OnlineAssignment> {
                 style: TextStyle(
                     color: Color(0xffffffff), fontWeight: FontWeight.bold)),
           ),
+        ],
+      ),
+    );
+  }
+  Widget _buildSurePopupDialog(BuildContext context, take_id, status, sum) {
+    return WillPopScope(
+      onWillPop: () {
+        Navigator.of(context).pop();
+      },
+      child: new AlertDialog(
+
+
+        content: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: Padding(
+              padding:
+              const EdgeInsets.only(left: 8, top: 16, right: 8, bottom: 8),
+              child: Column(
+                children: [
+                  if(status=='miss')
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: 16,
+                    ),
+                    child: Text.rich(
+                      TextSpan(
+                        children: <TextSpan>[
+
+                          TextSpan(
+                              text: 'you have $sum unanswered question!',
+                              style: TextStyle(
+                                color:Colors.red,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              )),
+
+                          TextSpan(
+                              text: ' Are you sure you want to submit you solution ?',
+                              style: TextStyle(
+
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              )),
+
+                        ],
+                      ),
+                    ),
+
+
+                  ),
+                  if(status=='full')
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: 16,
+                      ),
+                      child: Text('Are you sure you want to submit you solution?',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 19,
+                          )),
+                    ),
+
+                ],
+              )),
+        ),
+        actions: <Widget>[
+          new FlatButton(
+            onPressed: () {
+
+              Navigator.of(context).pop();
+
+
+            },
+            child: const Text('Close', style: TextStyle(color: Color(0xff229546), fontWeight: FontWeight.bold),),
+          ),
+          new FlatButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              FinishExam(take_id);
+            },
+            child: const Text('Ok',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: Color(0xff229546))),
+          ),
+
         ],
       ),
     );

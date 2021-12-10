@@ -167,7 +167,18 @@ class _CourseResourcesState extends State<CourseResources> {
   Widget build(BuildContext context) {
     return RefreshIndicator(
         onRefresh: refreshList,
+
         child: Scaffold(
+         appBar: new AppBar(
+            elevation: 2,
+            backgroundColor: Color(0xff229546),
+            shadowColor: Color(0x502196F3),
+            title: Text('Resources',
+                style: TextStyle(
+                    color: new Color(0xffffffff),
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold)),
+          ),
           body: socketException || timeoutException
               ? NoConnectionBody()
               : getBody(),
@@ -186,20 +197,6 @@ class _CourseResourcesState extends State<CourseResources> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.only(top: 24, left: 8, right: 8),
-              child: StaggeredGridView.count(
-                shrinkWrap: true,
-                crossAxisCount: 1,
-                physics: ScrollPhysics(),
-                children: <Widget>[
-                  myItems1(0xff000000),
-                ],
-                staggeredTiles: [
-                  StaggeredTile.extent(1, 50.0),
-                ],
-              ),
-            ),
-            Padding(
               padding: const EdgeInsets.all(10.0),
               child: StaggeredGridView.countBuilder(
                 shrinkWrap: true,
@@ -210,7 +207,7 @@ class _CourseResourcesState extends State<CourseResources> {
                   return getCard(Courses[index]);
                 },
                 staggeredTileBuilder: (int index) =>
-                    StaggeredTile.extent(1, 110.0),
+                    StaggeredTile.extent(1, 125.0),
                 mainAxisSpacing: 10.0,
                 crossAxisSpacing: 10.0,
               ),
@@ -224,6 +221,7 @@ class _CourseResourcesState extends State<CourseResources> {
   InkWell getCard(item) {
     var courseName = item['courseName'];
     var quantity = item['resource_count'];
+    var download_count=item['download_count'];
 
     return InkWell(
       onTap: () => Navigator.of(context)
@@ -278,7 +276,25 @@ class _CourseResourcesState extends State<CourseResources> {
                         ),
                       ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.33,
+                        child: Text(
+                          '$download_count/$quantity Opened',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.roboto(
+                            textStyle: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xffffffff),
+                              letterSpacing: 1,
+                              fontSize: 15,
 
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                     //Icon
                   ],
                 )
@@ -314,23 +330,6 @@ class _CourseResourcesState extends State<CourseResources> {
                   });
                   refreshList();
                 }),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Container(
-              width: MediaQuery.of(context).size.width,
-              height: 40.0,
-              padding: EdgeInsets.symmetric(horizontal: 15.0),
-              margin: EdgeInsets.only(top: 15.0),
-              child: RaisedButton(
-                onPressed: () {},
-                elevation: 0.0,
-                color: Color(0xff82C042),
-                child: Text("Download", style: TextStyle(color: Colors.white)),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5.0)),
-              ),
-            ),
           ),
         ],
       ),

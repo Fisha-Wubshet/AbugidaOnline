@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:abugida_online/Register/register.dart';
+import 'package:abugida_online/database_helper.dart';
 import 'package:abugida_online/utils/ObscuringTextEditingController.dart';
 import 'package:abugida_online/utils/httpUrl.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
   bool timeoutException = false;
   bool socketException = false;
   bool catchException = false;
-
+var WrongLogin='';
   var _phone;
   var _password;
   @override
@@ -53,80 +55,66 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: false,
       body: Center(
-        child: Container(
-          decoration: BoxDecoration(
-              gradient: LinearGradient(
-                  begin: Alignment.topRight,
-                  end: Alignment.bottomLeft,
-                  stops: [
-                0.1,
-                0.3,
-                0.6,
-                0.9
-              ],
-                  colors: [
-                Color(0xffFCF9F5),
-                Color(0xffFCF9F5),
-                Color(0xffFCF9F5),
-                Color(0xffFCF9F5),
-              ])),
+
           child: Center(
-            child: Column(
-              children: <Widget>[
-                headerSection(),
-                Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Material(
-                    color: Color(0xff82C042),
-                    elevation: 14,
-                    shadowColor: Color(0x802196F3),
-                    borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(20.0),
-                        topLeft: Radius.circular(20.0),
-                        bottomLeft: Radius.circular(20.0),
-                        bottomRight: Radius.circular(20.0)),
-                    child: Container(
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.only(
-                              topRight: Radius.circular(20.0),
-                              topLeft: Radius.circular(20.0),
-                              bottomLeft: Radius.circular(20.0),
-                              bottomRight: Radius.circular(20.0)),
-                          gradient: LinearGradient(
-                              begin: Alignment.topRight,
-                              end: Alignment.bottomLeft,
-                              stops: [
-                                0.1,
-                                0.4,
-                                0.6,
-                                0.9
-                              ],
-                              colors: [
-                                Color(0xff229546),
-                                Color(0xff93CA67),
-                                Color(0xff941A67),
-                                Color(0xff93CA67),
-                              ])),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+
+                  Padding(
+                    padding: const EdgeInsets.all(20.0),
+
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            children: [
-                              textSection(),
-                              buttonSection(),
-                            ],
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Image(image: AssetImage('assets/tri.png')),
+                                ),
+                                SizedBox(
+                                  height: 20,
+                                ),
+                                textSection(),
+                                buttonSection(),
+                                SizedBox(
+                                  height: 10,
+                                ),
+                                buttonSectionRegister(),
+                                SizedBox(
+                                  height: 10,
+                                ),
+                                Text(WrongLogin, style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 17,
+                                ),),
+                                Padding(
+                                  padding: const EdgeInsets.all(8),
+                                  child: Divider(color: Color(0xff229546)),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Container(
+                                    width: 200,
+                                      child: Image(image: AssetImage('assets/AbuLogo.png'))),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
-              ],
+
+
+                ],
+              ),
             ),
           ),
         ),
-      ),
+
     );
   }
 
@@ -156,6 +144,7 @@ class _LoginPageState extends State<LoginPage> {
               timeInSecForIosWeb: 1);
           setState(() {
             _isLoading = false;
+            WrongLogin='';
           });
         }
         //=========================================Login=============================
@@ -166,9 +155,13 @@ class _LoginPageState extends State<LoginPage> {
           if (jsonResponse != null) {
             setState(() {
               _isLoading = false;
+              WrongLogin='';
             });
             sharedPreferences.setString('token', jsonResponse["token"]);
-
+            await VerificationDatabaseHelper.instance.insert({
+              VerificationDatabaseHelper.columnemail: phone,
+              VerificationDatabaseHelper.columnPassword: pass,
+            });
             Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(
                     builder: (BuildContext context) => HomePage()),
@@ -179,6 +172,7 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 401) {
         setState(() {
           _isLoading = false;
+          WrongLogin=response.body;
         });
         Fluttertoast.showToast(
             msg: "${response.body}",
@@ -219,6 +213,7 @@ class _LoginPageState extends State<LoginPage> {
     } on Error catch (e) {
       print('$e');
       setState(() {
+
         _isLoading = false;
         catchException = true;
       });
@@ -243,7 +238,7 @@ class _LoginPageState extends State<LoginPage> {
                 signIn(_phone, _password);
               },
         elevation: 0.0,
-        color: Color(0xff82C042),
+        color: Color(0xff229546),
         child: Text.rich(TextSpan(
           children: <TextSpan>[
             if (!_isLoading)
@@ -252,6 +247,22 @@ class _LoginPageState extends State<LoginPage> {
               TextSpan(text: ' ...', style: TextStyle(color: Colors.white)),
           ],
         )),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
+      ),
+    );
+  }
+  Container buttonSectionRegister() {
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      height: 40.0,
+      padding: EdgeInsets.symmetric(horizontal: 15.0),
+      margin: EdgeInsets.only(top: 15.0),
+      child: FlatButton(
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => new Register()));
+        },
+
+        child: Text("Register", style: TextStyle(color: Color(0xff82C042), fontWeight: FontWeight.bold)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
       ),
     );
@@ -268,79 +279,79 @@ class _LoginPageState extends State<LoginPage> {
         children: <Widget>[
           TextFormField(
             controller: phoneController,
-            cursorColor: Color(0xff82C042),
-            style: TextStyle(color: Color(0xff82C042)),
+            cursorColor: Color(0xff229546),
+            style: TextStyle(color: Color(0xff229546)),
             decoration: InputDecoration(
                 fillColor: Colors.white,
                 prefixIcon: Icon(
                   Icons.phone_android,
-                  color: Color(0xff82C042),
+                  color: Color(0xff229546),
                   size: 15,
                 ),
                 disabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xff82C042)),
-                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide(color: Color(0xff229546)),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 hintText: 'Email',
                 hintStyle: TextStyle(
                   fontSize: 15,
                   letterSpacing: 1.5,
-                  color: Color(0xff82C042),
+                  color: Color(0xff229546),
                 ),
                 filled: true,
-                hoverColor: Color(0xff82C042),
-                focusColor: Color(0xff82C042),
+                hoverColor: Color(0xff229546),
+                focusColor: Color(0xff229546),
                 border: OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.lightGreen[200]),
-                  borderRadius: BorderRadius.circular(25),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xff82C042)),
+                  borderSide: BorderSide(color: Color(0xff229546)),
                   borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(50.0),
-                      topLeft: Radius.circular(50.0),
-                      bottomLeft: Radius.circular(50.0),
-                      bottomRight: Radius.circular(50.0)),
+                      topRight: Radius.circular(10),
+                      topLeft: Radius.circular(10),
+                      bottomLeft: Radius.circular(10),
+                      bottomRight: Radius.circular(10)),
                 )),
           ),
           SizedBox(height: 30.0),
           TextFormField(
             controller: passwordController,
-            cursorColor: Color(0xff82C042),
+            cursorColor: Color(0xff229546),
             enableSuggestions: false,
             autocorrect: false,
-            style: TextStyle(color: Color(0xff82C042)),
+            style: TextStyle(color: Color(0xff229546)),
             decoration: InputDecoration(
                 fillColor: Colors.white,
                 prefixIcon: Icon(
                   Icons.vpn_key_rounded,
-                  color: Color(0xff82C042),
+                  color: Color(0xff229546),
                   size: 15,
                 ),
                 disabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xff82C042)),
-                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide(color: Color(0xff229546)),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 hintText: "Password",
                 hintStyle: TextStyle(
                   fontSize: 15,
                   letterSpacing: 1.5,
-                  color: Color(0xff82C042),
+                  color: Color(0xff229546),
                 ),
                 filled: true,
                 hoverColor: Colors.transparent,
                 focusColor: Colors.transparent,
                 border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xff82C042)),
-                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide(color: Color(0xff229546)),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xff82C042)),
+                  borderSide: BorderSide(color: Color(0xff229546)),
                   borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(50.0),
-                      topLeft: Radius.circular(50.0),
-                      bottomLeft: Radius.circular(50.0),
-                      bottomRight: Radius.circular(50.0)),
+                      topRight: Radius.circular(10),
+                      topLeft: Radius.circular(10),
+                      bottomLeft: Radius.circular(10),
+                      bottomRight: Radius.circular(10)),
                 )),
           ),
         ],

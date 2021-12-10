@@ -5,11 +5,13 @@ import 'package:abugida_online/MyCourses.dart';
 import 'package:abugida_online/Notice/NoticeList.dart';
 import 'package:abugida_online/Quiz/CourseExams.dart';
 import 'package:abugida_online/Quiz/QuizChoice.dart';
+import 'package:abugida_online/Videos/CourseVideo.dart';
 import 'package:abugida_online/Videos/Videos.dart';
 import 'package:abugida_online/assignment/CourseAssignment.dart';
 import 'package:abugida_online/download/downloadFolder.dart';
 import 'package:abugida_online/resources/CourseResources.dart';
 import 'package:abugida_online/utils/httpUrl.dart';
+import 'package:abugida_online/zoomPage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -79,8 +81,9 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Future<Null> refreshList() async {
-    await Future.delayed(Duration(seconds: 2));
-    setState(() {});
+    setState(() {
+      DashData();
+    });
   }
 
   @override
@@ -225,7 +228,7 @@ class _DashboardState extends State<Dashboard> {
                       Icons.menu_book,
                       resourceCount,
                       downloadCount,
-                      'Downloaded')),
+                      'Opened')),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 5, bottom: 5),
@@ -239,11 +242,11 @@ class _DashboardState extends State<Dashboard> {
                   child: myItems1(
                       0xff000000,
                       0xffffffff,
-                      'Assignment',
+                      'Assignments',
                       Icons.library_books,
                       assignmentCount,
                       submissionCount,
-                      'Submited')),
+                      'Submitted')),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 5, bottom: 5),
@@ -255,7 +258,7 @@ class _DashboardState extends State<Dashboard> {
                             builder: (context) => CourseExams()));
                   },
                   child: myItems2(
-                      0xff000000, 0xffffffff, 'Exam', Icons.edit_road_sharp)),
+                      0xff000000, 0xffffffff, 'Exams & Quizzes', Icons.edit_road_sharp)),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 5, bottom: 5),
@@ -267,7 +270,7 @@ class _DashboardState extends State<Dashboard> {
                             builder: (context) => new NoticeList()));
                   },
                   child: myItems2(
-                      0xff000000, 0xffffffff, 'Notice', Icons.message)),
+                      0xff000000, 0xffffffff, 'Notices', Icons.message)),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 5, bottom: 5),
@@ -276,7 +279,7 @@ class _DashboardState extends State<Dashboard> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => new YoutubePlayerDemoApp()));
+                            builder: (context) => new CourseVideo()));
                   },
                   child: myItems2(0xff000000, 0xffffffff, 'Videos',
                       Icons.video_collection_rounded)),

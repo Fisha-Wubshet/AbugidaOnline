@@ -12,7 +12,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
    <application
-        android:label="abugida_online"
+        android:label="Trillium Abugida"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"
         >

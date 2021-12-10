@@ -161,7 +161,6 @@ class _NoticeListState extends State<NoticeList> {
   }
 
   Future<Null> refreshList() async {
-    await Future.delayed(Duration(seconds: 2));
     setState(() {
       fetchCourses();
     });
@@ -169,50 +168,57 @@ class _NoticeListState extends State<NoticeList> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-        onRefresh: refreshList,
-        child: Scaffold(
+    return Scaffold(
+          appBar: new AppBar(
+            elevation: 2,
+            backgroundColor: Color(0xff229546),
+            shadowColor: Color(0x502196F3),
+            title: Text('Notices',
+                style: TextStyle(
+                    color: new Color(0xffffffff),
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold)),
+          ),
           body: socketException || timeoutException
               ? NoConnectionBody()
-              : getBody(),
-        ));
+              : RefreshIndicator(
+              onRefresh: refreshList,child: getBody()),
+        );
   }
 
   Widget getBody() {
     if (Notice.contains(null) || Notice.length < 0 || isLoading) {
       return Material(
-          child: SpinKitThreeBounce(
+          child: SpinKitDoubleBounce(
             color: Color(0xff229546),
-            size: 30,
+            size: 71,
           ));
     }
-    return SingleChildScrollView(
-        child: Column(
-
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 24, left: 8, right: 8, bottom: 8),
-              child: StaggeredGridView.count(
-                shrinkWrap: true,
-                crossAxisCount: 1,
-                physics: ScrollPhysics(),
-                children: <Widget>[
-                  myItems1(0xff000000),
-                ],
-                staggeredTiles: [
-                  StaggeredTile.extent(1, 30.0),
-                ],
+    if(Notice.length==0) {
+      return Center(
+        child: SingleChildScrollView(
+          child: Container(
+            width: 200,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Container(
+                  width: 300,
+                  child: Image(image: AssetImage('assets/Nocontant.png'),),
+                ),
               ),
             ),
-            ListView.builder(
-                shrinkWrap: true,
-                physics: ClampingScrollPhysics(),
+          ),
+        ),
+      );
+    }
+    return ListView.builder(
+
                 itemCount: Notice.length,
                 itemBuilder: (context, index) {
                   return getCard(Notice[index]);
-                }),
-          ],
-        ),
+                }
+
 
     );
   }
@@ -334,23 +340,7 @@ class _NoticeListState extends State<NoticeList> {
                   refreshList();
                 }),
           ),
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Container(
-              width: MediaQuery.of(context).size.width,
-              height: 40.0,
-              padding: EdgeInsets.symmetric(horizontal: 15.0),
-              margin: EdgeInsets.only(top: 15.0),
-              child: RaisedButton(
-                onPressed: () {},
-                elevation: 0.0,
-                color: Color(0xff82C042),
-                child: Text("Download", style: TextStyle(color: Colors.white)),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5.0)),
-              ),
-            ),
-          ),
+
         ],
       ),
     );

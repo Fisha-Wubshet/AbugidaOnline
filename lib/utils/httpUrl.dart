@@ -1,1 +1,1 @@
-var httpUrl = "https://demo.trillium-elearing.com";
+var httpUrl = "https://trillium-elearning.com";

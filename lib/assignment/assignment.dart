@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:abugida_online/ImageViewer/ImageViewer.dart';
 import 'package:abugida_online/Quiz/QuizChoice.dart';
 import 'package:abugida_online/assignment/OnlineAssignment.dart';
 import 'package:abugida_online/assignment/SubmissionAnswer.dart';
@@ -33,7 +34,7 @@ import 'package:mime/mime.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:async/async.dart';
-import 'package:path/path.dart' ;
+import 'package:path/path.dart';
 
 
 class Assignment extends StatefulWidget {
@@ -63,6 +64,7 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
   var path = "No Data";
   var _onPressed;
   bool isLoading = false;
+  bool checkemptyList= false;
   bool timeoutException = false;
   bool socketException = false;
   bool catchException = false;
@@ -168,7 +170,7 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
 
       try {
         FileUtils.mkdir([dirloc]);
-        await dio.download('https://demo.trillium-elearing.com$urlPath', dirloc + randid.toString() + ".${filetypeexten[filetypeexten.length-1]}",
+        await dio.download('$httpUrl$urlPath', dirloc + randid.toString() + ".${filetypeexten[filetypeexten.length-1]}",
             onReceiveProgress: (receivedBytes, totalBytes) {
               setState(() {
                 downloading = true;
@@ -185,6 +187,8 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
               toastLength: Toast.LENGTH_SHORT,
               gravity: ToastGravity.BOTTOM,
               timeInSecForIosWeb: 1);
+
+
         });
       } catch (e) {
         print(e);
@@ -204,7 +208,7 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
       setState(() {
         progress = "Permission Denied!";
         _onPressed = () {
-          downloadFile(title, 'https://demo.trillium-elearing.com$urlPath');
+          downloadFile(title, '$httpUrl$urlPath');
         };
       });
     }
@@ -298,6 +302,16 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
                   Assignment_name:title
               )));
     }
+    else {
+      Fluttertoast.showToast(
+          msg: "uploaded failed",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1);
+      setState(() {
+        uploadLoading = false;
+      });
+    }
     // listen for response
     response.stream.transform(utf8.decoder).listen((value) {
       print(value);
@@ -331,6 +345,12 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
         var items = json.decode(response.body);
         setState(() {
           users = items;
+          print('fghjklffffffffffffffffffffffff');
+          print(users.length==0);
+          if(users.length==0)
+          {
+            checkemptyList = true;
+          }
           isLoading = false;
         });
       } else if (response.statusCode == 401) {
@@ -399,12 +419,11 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
               indicatorWeight: 2.0,
               indicatorColor: Color(0xffffffff),
               tabs:<Widget> [
-                new Tab (icon: new Text("Not graded", style: GoogleFonts.fredokaOne(
-                  textStyle: TextStyle(fontWeight: FontWeight.w900, color: Color(0xffffffff), letterSpacing: 2,
-                    fontSize: 17, shadows: <Shadow>[Shadow(offset: Offset(2.0, 2.0), blurRadius: 5.0, color: Color(0x48000000),),],),), )),
-                new Tab (icon: new Text("graded", style: GoogleFonts.fredokaOne(
-                  textStyle: TextStyle(fontWeight: FontWeight.w900, color: Color(0xffffffff), letterSpacing: 2,
-                    fontSize: 17, shadows: <Shadow>[Shadow(offset: Offset(2.0, 2.0), blurRadius: 5.0, color: Color(0x48000000),),],),)), ),
+                new Tab (icon: new Text("Not graded",
+                  style: TextStyle(fontWeight: FontWeight.w900,color: Color(0xffffffff),
+                    fontSize: 15, shadows: <Shadow>[Shadow(offset: Offset(2.0, 2.0), blurRadius: 5.0, color: Color(0x48000000),),],), )),
+                new Tab (icon: new Text("graded", style: TextStyle(fontWeight: FontWeight.w900,color: Color(0xffffffff),
+                  fontSize: 15, shadows: <Shadow>[Shadow(offset: Offset(2.0, 2.0), blurRadius: 5.0, color: Color(0x48000000),),],), )),
 
 
               ],
@@ -419,10 +438,11 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
         children: <Widget>[
 
           new Scaffold(
-            body: getBodyNotGraded(),
+
+            body: RefreshIndicator(onRefresh: refreshList, child: getBodyNotGraded()),
           ),
           new Scaffold(
-            body: getBodyGraded(),
+            body: RefreshIndicator(onRefresh: refreshList, child:getBodyGraded()),
           ),
         ],
       ),
@@ -430,12 +450,13 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
   }
 
   Widget getBodyGraded() {
-    if (users.contains(null) || users.length < 0 || isLoading) {
+    if (isLoading) {
       return Center(
           child: const SpinKitDoubleBounce(size: 71.0, color: Color(0xff229546)));
     }
     if (socketException || timeoutException) {
       return Center(
+
           child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(
@@ -462,6 +483,7 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
             ),
           ));
     }
+
     if(uploadLoading){
       return Material(
           child: Row(
@@ -475,6 +497,24 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
               ),
             ],
           ));
+    }
+    if(users.length==0) {
+      return Center(
+        child: SingleChildScrollView(
+          child: Container(
+            width: 200,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Container(
+                  width: 300,
+                  child: Image(image: AssetImage('assets/Nocontant.png'),),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
     }
     return downloading
         ? Center(
@@ -500,18 +540,13 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
         ),
       ),
     )
-        : SingleChildScrollView(
-      child: Column(
-        children: [
-          ListView.builder(
-              shrinkWrap: true,
-              physics: ClampingScrollPhysics(),
+        : ListView.builder(
+
               itemCount: users.length,
               itemBuilder: (context, index) {
                 return getGraded(users[index]);
-              }),
-        ],
-      ),
+              }
+
     );
   }
 
@@ -562,7 +597,8 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
           child: Padding(
             padding: const EdgeInsets.fromLTRB(2, 10, 2, 10),
             child: ListTile(
-              leading: Icon(Icons.menu_book, color: Color(0xff229546)),
+              leading: Icon(Icons.library_books, color:
+              type=='DOWNLOADABLE_ASSIGNMENT'? Color(0xff3c8dcb): Color(0xff229546)),
               title:
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -615,7 +651,7 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
                       if(type=='DOWNLOADABLE_ASSIGNMENT')
                         Text(
                           'Downloadable Assignment',
-                          style: TextStyle(color: Color(0xff229546)),
+                          style: TextStyle(color: Color(0xff3c8dcb)),
                         ),
                       if(type=='ONLINE_ASSIGNMENT')
                         Text(
@@ -673,6 +709,7 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
             ),
           ));
     }
+
     if(uploadLoading){
       return Material(
           child: Row(
@@ -686,6 +723,24 @@ class _AssignmentState extends State<Assignment>with SingleTickerProviderStateMi
               ),
             ],
           ));
+    }
+    if(users.length==0) {
+      return Center(
+        child: SingleChildScrollView(
+          child: Container(
+            width: 200,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Container(
+                  width: 300,
+                  child: Image(image: AssetImage('assets/Nocontant.png'),),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
     }
     return downloading
         ? Center(
@@ -771,7 +826,8 @@ if(item['score_status']=='Not Graded')
           child: Padding(
             padding: const EdgeInsets.fromLTRB(2, 10, 2, 10),
             child: ListTile(
-                leading: Icon(Icons.menu_book, color: Color(0xff229546)),
+                leading: Icon(Icons.library_books, color:
+                type=='DOWNLOADABLE_ASSIGNMENT'? Color(0xff3c8dcb): Color(0xff229546)),
                 title:
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -821,12 +877,12 @@ if(item['score_status']=='Not Graded')
                     ),
                     if(type=='DOWNLOADABLE_ASSIGNMENT')
                       Text(
-                        'Downloadable',
-                        style: TextStyle(color: Color(0xff229546), fontWeight: FontWeight.bold),
+                        'Downloadable  Assignment',
+                        style: TextStyle(color: Color(0xff3c8dcb), fontWeight: FontWeight.bold),
                       ),
                     if(type=='ONLINE_ASSIGNMENT')
                       Text(
-                        'Online',
+                        'Online Assignment',
                         style: TextStyle(color: Color(0xff229546), fontWeight: FontWeight.bold),
                       ),
 
@@ -869,8 +925,17 @@ else{
                   print(mimeType);
                   if(mimeType=='image/png' || mimeType=='image/jpeg' || mimeType=='image/jpg'){
                     Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => new WebViewPage(title: title,
-                            link: "https://demo.trillium-elearing.com"+path)));
+                        MaterialPageRoute(builder: (context) => new ImageViewer(title: title,
+                            link: httpUrl+path)));
+                  }
+                  else if(mimeType=='application/pdf')
+                  {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => new pdftest(
+                                title: title,
+                                link: path)));
                   }
                   else
                   {
@@ -879,7 +944,7 @@ else{
                         MaterialPageRoute(
                             builder: (context) => new WebViewPage(
                                 title: title,
-                                link: "https://docs.google.com/a/demo.trillium-elearing.com/viewer?url=demo.trillium-elearing.com" + path)));
+                                link: "http://view.officeapps.live.com/op/view.aspx?src=$httpUrl" + path)));
                   }
                 },
                     child: Center(
@@ -970,7 +1035,7 @@ else{
                 child: GestureDetector(
                   onTap: () {
                     Navigator.of(context).pop();
-                    if(as_status=="Closed" && score_status=='Graded') {
+                    if(as_status=="Closed" || score_status=='Graded') {
                       Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -1019,34 +1084,6 @@ else{
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: Divider(color: Color(0xff229546)),
               ),
-            if(score_status=='Graded')
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.of(context).pop();
-                  downloadFile(title,path);
-                },
-                child: Align(
-                  alignment: Alignment.center,
-
-                  child: Center(
-                    child: Align(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.question_answer_outlined, color: Color(0xff229546),),
-                          Text(
-                            '   correct Answer',  style: GoogleFonts.roboto(
-                            textStyle: TextStyle(color: Color(0xff000000), fontSize: 20, shadows: <Shadow>[
-                              Shadow(
-                                offset: Offset(1.5, 1.5),
-                                blurRadius: 3.0,
-                                color: Color(0x2D7BA0E0),
-                              ),
-                            ],fontWeight: FontWeight.bold),),),
-                        ],),),),),),),
             if(score_status!='Graded' && submission_status!="Submitted" && as_status=="Closed")
               Center(
                 child: Padding(

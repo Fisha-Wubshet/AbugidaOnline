@@ -169,6 +169,16 @@ class _CourseExamsState extends State<CourseExams> {
     return RefreshIndicator(
         onRefresh: refreshList,
         child: Scaffold(
+          appBar: new AppBar(
+            elevation: 2,
+            backgroundColor: Color(0xff229546),
+            shadowColor: Color(0x502196F3),
+            title: Text('Exams & Quizzes',
+                style: TextStyle(
+                    color: new Color(0xffffffff),
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold)),
+          ),
           body: socketException || timeoutException
               ? NoConnectionBody()
               : getBody(),
@@ -186,20 +196,6 @@ class _CourseExamsState extends State<CourseExams> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 24, left: 8, right: 8),
-            child: StaggeredGridView.count(
-              shrinkWrap: true,
-              crossAxisCount: 1,
-              physics: ScrollPhysics(),
-              children: <Widget>[
-                myItems1(0xff000000),
-              ],
-              staggeredTiles: [
-                StaggeredTile.extent(1, 50.0),
-              ],
-            ),
-          ),
           Padding(
             padding: const EdgeInsets.all(10.0),
             child: StaggeredGridView.countBuilder(
@@ -316,23 +312,7 @@ class _CourseExamsState extends State<CourseExams> {
                   refreshList();
                 }),
           ),
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Container(
-              width: MediaQuery.of(context).size.width,
-              height: 40.0,
-              padding: EdgeInsets.symmetric(horizontal: 15.0),
-              margin: EdgeInsets.only(top: 15.0),
-              child: RaisedButton(
-                onPressed: () {},
-                elevation: 0.0,
-                color: Color(0xff82C042),
-                child: Text("Download", style: TextStyle(color: Colors.white)),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5.0)),
-              ),
-            ),
-          ),
+
         ],
       ),
     );

@@ -109,10 +109,88 @@ class _QuestionsListState extends State<QuestionsList> {
     }
   }
 
+  Delete(Id) async {
+    setState(() {
+      isLoading = true;
+    });
+    int timeout = 20;
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      var token = prefs.getString('token');
 
+      var url = Uri.parse("$httpUrl/api/deleteMyQuestions/$Id");
+      var response = await http.get(url, headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      }).timeout(Duration(seconds: timeout));
+      print(response.statusCode);
+      print(response.body);
+      if (response.statusCode == 200) {
+
+        var jsonResponse = json.decode(response.body);
+        print("${response.statusCode}");
+        print("${response.body}");
+        Fluttertoast.showToast(
+            msg: "Solution deleted",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            timeInSecForIosWeb: 1);
+
+        refreshList();
+        print(response.body);
+      }
+      if (response.statusCode == 422) {
+        Fluttertoast.showToast(
+            msg: "Agent has balance and cannot be deleted!",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            timeInSecForIosWeb: 1);
+        Navigator.pop(this.context, true);
+        setState(() {
+          isLoading = false;
+        });
+        print(response.body);
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        print(response.body);
+      }
+    } on TimeoutException catch (e) {
+      print('Timeout Error: $e');
+      setState(() {
+        isLoading = false;
+      });
+      Fluttertoast.showToast(
+          msg: "connection timeout, try again",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1);
+    } on SocketException catch (e) {
+      print('Socket Error: $e');
+      setState(() {
+        isLoading = false;
+      });
+      Fluttertoast.showToast(
+          msg: "no connection",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1);
+    } on Error catch (e) {
+      print('$e');
+      setState(() {
+        isLoading = false;
+      });
+      Fluttertoast.showToast(
+          msg: "error occurred while loading",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1);
+    }
+  }
 
   Future<Null> refreshList() async {
-    await Future.delayed(Duration(seconds: 2));
     setState(() {
       fetchCourses();
     });
@@ -147,10 +225,28 @@ class _QuestionsListState extends State<QuestionsList> {
   Widget getBody() {
     if (Notice.contains(null) || Notice.length < 0 || isLoading) {
       return Material(
-          child: SpinKitThreeBounce(
+          child: SpinKitDoubleBounce(
             color: Color(0xff229546),
-            size: 30,
+            size: 71,
           ));
+    }
+    if(Notice.length==0) {
+      return Center(
+        child: SingleChildScrollView(
+          child: Container(
+            width: 200,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Container(
+                  width: 300,
+                  child: Image(image: AssetImage('assets/Nocontant.png'),),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
     }
     return  SingleChildScrollView(
         child: Column(
@@ -197,13 +293,13 @@ class _QuestionsListState extends State<QuestionsList> {
         elevation: 3,
         shadowColor: Color(0x502196F3),
         child: Padding(
-          padding: const EdgeInsets.all(10.0),
+          padding: const EdgeInsets.only( top: 10, bottom: 10),
           child: ListTile(
-            leading: Icon(Icons.message, color: Color(0xff229546)),
             title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 SizedBox(
-                  width: 10,
+                  width: 5,
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,7 +350,16 @@ class _QuestionsListState extends State<QuestionsList> {
                       ],
                     )
                   ],
-                )
+                ),
+                InkWell(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) => _buildDeletePopupDialog(context, item['id'] ),
+
+                      );
+                    },
+                    child: Icon(Icons.delete_forever, color: Color(0xff229546), size: 30,))
               ],
             ),
           ),
@@ -288,23 +393,6 @@ class _QuestionsListState extends State<QuestionsList> {
                   });
                   refreshList();
                 }),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Container(
-              width: MediaQuery.of(context).size.width,
-              height: 40.0,
-              padding: EdgeInsets.symmetric(horizontal: 15.0),
-              margin: EdgeInsets.only(top: 15.0),
-              child: RaisedButton(
-                onPressed: () {},
-                elevation: 0.0,
-                color: Color(0xff82C042),
-                child: Text("Download", style: TextStyle(color: Colors.white)),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5.0)),
-              ),
-            ),
           ),
         ],
       ),
@@ -370,6 +458,61 @@ class _QuestionsListState extends State<QuestionsList> {
         ),
 
       ],
+    );
+  }
+
+  Widget _buildDeletePopupDialog(BuildContext context, _id) {
+    return WillPopScope(
+      onWillPop: () {
+        Navigator.of(context).pop();
+      },
+      child: new AlertDialog(
+
+
+        content: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: Padding(
+              padding:
+              const EdgeInsets.only(left: 8, top: 16, right: 8, bottom: 8),
+              child: Column(
+                children: [
+
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: 16,
+                      ),
+                      child: Text('Are you sure you want to Delete you question?',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 19,
+                          )),
+                    ),
+
+                ],
+              )),
+        ),
+        actions: <Widget>[
+          new FlatButton(
+            onPressed: () {
+
+              Navigator.of(context).pop();
+
+
+            },
+            child: const Text('Close', style: TextStyle(color: Color(0xff229546), fontWeight: FontWeight.bold),),
+          ),
+          new FlatButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Delete(_id);
+            },
+            child: const Text('Ok',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: Color(0xff229546))),
+          ),
+
+        ],
+      ),
     );
   }
 }

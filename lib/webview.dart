@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 const String kNavigationExamplePage = '''
 <!DOCTYPE html><html>
@@ -34,13 +36,24 @@ class WebViewPage extends StatefulWidget {
 class _WebViewPageState extends State<WebViewPage> {
   final Completer<WebViewController> _controller =
   Completer<WebViewController>();
+  bool isLoading=true;
+  double _scale = 1.0;
+  double _previousScale = 1.0;
 
   @override
   void initState() {
     super.initState();
     if (Platform.isAndroid) WebView.platform = SurfaceAndroidWebView();
-  }
 
+  }
+  Offset _tapPosition;
+
+  void _handleTapDown(TapDownDetails details) {
+    final RenderBox referenceBox = context.findRenderObject();
+    setState(() {
+      _tapPosition = referenceBox.globalToLocal(details.globalPosition);
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,40 +67,63 @@ class _WebViewPageState extends State<WebViewPage> {
       // We're using a Builder here so we have a context that is below the Scaffold
       // to allow calling Scaffold.of(context) so we can show a snackbar.
       body: Builder(builder: (BuildContext context) {
-        return WebView(
+        return
+           Stack(
+             children: <Widget>[
 
-          initialUrl: widget.link,
-          javascriptMode: JavascriptMode.unrestricted,
 
-          onWebViewCreated: (WebViewController webViewController) {
+                   WebView(
 
-            _controller.complete(webViewController);
-          },
-          onProgress: (int progress) {
-            print("WebView is loading (progress : $progress%)");
-          },
-          javascriptChannels: <JavascriptChannel>{
+                      initialUrl: widget.link,
+                      javascriptMode: JavascriptMode.unrestricted,
 
-            _toasterJavascriptChannel(context),
-          },
-          navigationDelegate: (NavigationRequest request) {
-            if (request.url.startsWith('https://www.youtube.com/')) {
-              print('blocking navigation to $request}');
-              return NavigationDecision.prevent;
-            }
-            print('allowing navigation to $request');
-            return NavigationDecision.navigate;
-          },
-          onPageStarted: (String url) {
-            print('Page started loading: $url');
-          },
-          onPageFinished: (String url) {
-            print('Page finished loading: $url');
-          },
-          gestureNavigationEnabled: true,
-        );
+                      onWebViewCreated: (WebViewController webViewController) {
+
+                        _controller.complete(webViewController);
+                      },
+                      onProgress: (int progress) {
+                        print("WebView is loading (progress : $progress%)");
+                      },
+                      javascriptChannels: <JavascriptChannel>{
+
+                        _toasterJavascriptChannel(context),
+                      },
+                      navigationDelegate: (NavigationRequest request) {
+                        if (request.url.startsWith('https://www.youtube.com/')) {
+                          print('blocking navigation to $request}');
+                          return NavigationDecision.prevent;
+                        }
+                        print('allowing navigation to $request');
+                        return NavigationDecision.navigate;
+                      },
+                      onPageStarted: (String url) {
+                        setState(() {
+                          isLoading = true;
+                        });
+                        print('Page started loading: $url');
+                      },
+
+                      onPageFinished: (finish) {
+                        print('Page finished loading: finish');
+                        setState(() {
+                          isLoading = false;
+                        });
+                      },
+                      gestureNavigationEnabled: true,
+          ),
+
+
+               isLoading ? Center(
+               child: const SpinKitDoubleBounce(size: 71.0, color: Color(0xff229546)))
+                   : Stack(),
+             ],
+           );
+
+
       }),
+
     );
+
   }
 
   JavascriptChannel _toasterJavascriptChannel(BuildContext context) {

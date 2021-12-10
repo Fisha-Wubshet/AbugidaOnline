@@ -1,6 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:abugida_online/AboutPage.dart';
 import 'package:abugida_online/Dashboard.dart';
+import 'package:abugida_online/Library.dart';
+import 'package:abugida_online/Quiz/CourseExams.dart';
+import 'package:abugida_online/Videos/CourseVideo.dart';
+import 'package:abugida_online/database_helper.dart';
+import 'package:abugida_online/download/DownloadFolderAppBar.dart';
+import 'package:abugida_online/resetPassword/resetPassword.dart';
+import 'package:abugida_online/MarkList/CourseMarkList.dart';
 import 'package:abugida_online/HomePage.dart';
 import 'package:abugida_online/MyCourses.dart';
 import 'package:abugida_online/MyQuestions/AddQuestions.dart';
@@ -13,10 +22,12 @@ import 'package:abugida_online/download/downloadList.dart';
 import 'package:abugida_online/fileupload.dart';
 import 'package:abugida_online/login.dart';
 import 'package:abugida_online/resources/CourseResources.dart';
+import 'package:abugida_online/utils/httpUrl.dart';
 import 'package:abugida_online/webview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 void main() {
   HttpOverrides.global = new MyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,19 +87,78 @@ class _HomePageState extends State<HomePage> {
   }
 
   bool _permission = false;
+  var users;
   bool isLoading = false;
-  String name = 'Student';
-  String town;
-  int id;
-  int phone;
+  var name;
+  var LName;
+  var email ='Student';
+  var class_name;
+  var id;
+  var section_name;
 
   SharedPreferences sharedPreferences;
   @override
   void initState() {
     checkLoginStatus();
     super.initState();
-  }
+    fetchUser();
+    fatchEmail();
 
+  }
+  fatchEmail() async{
+    setState(() {
+      isLoading = true;
+    });
+    List<Map<String,dynamic>> queryRows =await VerificationDatabaseHelper.instance.queryOneRows(1);
+    setState(() {
+      email=queryRows[0]['email'];
+      isLoading = false;
+    });
+  }
+  fetchUser() async {
+    setState(() {
+      isLoading = true;
+    });
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var token = prefs.getString('token');
+    var url = Uri.parse("$httpUrl/api/getStudent");
+    var response = await http.get(url, headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    });
+    print(response.body);
+    print(response.statusCode);
+    if(response.statusCode == 200){
+      var items = json.decode(response.body);
+      users=items;
+      name = users['f_name'];
+      LName=users['l_name'];
+      section_name = users['section_name'];
+      class_name=users['class_name'];
+
+      await VerificationDatabaseHelper.instance.update({
+        VerificationDatabaseHelper.columnId: 1,
+        VerificationDatabaseHelper.columnName: name,
+        VerificationDatabaseHelper.columnsection: section_name,
+        VerificationDatabaseHelper.columnclass: class_name,
+      });
+      setState(() {
+
+        name = users['f_name'];
+        LName=users['l_name'];
+        section_name = users['section_name'];
+        class_name=users['class_name'];
+
+        isLoading = false;
+      });
+    
+    }else{
+      print(response.body);
+      users = [];
+      isLoading = false;
+    }
+  }
   checkLoginStatus() async {
     sharedPreferences = await SharedPreferences.getInstance();
     if (sharedPreferences.getString("token") == null) {
@@ -116,19 +186,6 @@ class _HomePageState extends State<HomePage> {
                   color: new Color(0xffffffff),
                   fontSize: 24,
                   fontWeight: FontWeight.bold)),
-          actions: <Widget>[
-            Padding(
-              padding: const EdgeInsets.only(right: 14, bottom: 8),
-              child: InkWell(
-                onTap: () async {},
-                child: Icon(
-                  Icons.notifications,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
-            ),
-          ],
         ),
         drawer: new Drawer(
           child: new ListView(children: <Widget>[
@@ -146,17 +203,53 @@ class _HomePageState extends State<HomePage> {
                       child:
                           Image.asset('assets/Trillium.jpg', fit: BoxFit.fill),
                     ),
-                    Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('$name',
-                              style: TextStyle(
-                                  color: new Color(0xff000000),
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold)),
-                        ),
-                      ],
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if(name!=null)
+                          Padding(
+                            padding: const EdgeInsets.all(2.0),
+                            child: SizedBox(
+                              width: MediaQuery.of(this.context).size.width*0.45,
+                              child: Text('$name $LName',
+                                  style: TextStyle(
+                                      color: new Color(0xff000000),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                          if(name==null)
+                          Padding(
+                            padding: const EdgeInsets.all(2.0),
+                            child: Text('$email',
+                                style: TextStyle(
+                                    color: new Color(0xff000000),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                          if(class_name!=null)
+                          Padding(
+                            padding: const EdgeInsets.all(2.0),
+                            child: Text('$class_name $section_name',
+                                style: TextStyle(
+                                    color: new Color(0xff000000),
+                                    fontSize: 15,
+                                )),
+                          ),
+                          if(class_name==null)
+                            Padding(
+                              padding: const EdgeInsets.all(2.0),
+                              child: Text('class ...',
+                                  style: TextStyle(
+                                    color: new Color(0xff000000),
+                                    fontSize: 18,
+                                  )),
+                            ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -172,7 +265,16 @@ class _HomePageState extends State<HomePage> {
                 leading: Icon(Icons.dashboard, color: Color(0xff229546)),
               ),
             ),
-
+            InkWell(
+              onTap: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => new CourseResources()));
+              },
+              child: ListTile(
+                title: Text('My Resource'),
+                leading: Icon(Icons.menu_book, color: Color(0xff229546)),
+              ),
+            ),
             InkWell(
               onTap: () {
                 Navigator.push(context,
@@ -183,14 +285,16 @@ class _HomePageState extends State<HomePage> {
                 leading: Icon(Icons.border_color, color: Color(0xff229546)),
               ),
             ),
+
             InkWell(
               onTap: () {
                 Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => new CourseResources()));
+                    MaterialPageRoute(builder: (context) => new CourseExams()));
               },
               child: ListTile(
-                title: Text('My Resource'),
-                leading: Icon(Icons.menu_book, color: Color(0xff229546)),
+                title: Text('My Exam'),
+                leading:
+                Icon(Icons.edit_road_sharp, color: Color(0xff229546)),
               ),
             ),
             InkWell(
@@ -215,7 +319,8 @@ class _HomePageState extends State<HomePage> {
             ),
             InkWell(
               onTap: () {
-
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => new CourseVideo()));
               },
               child: ListTile(
                 title: Text('Videos'),
@@ -234,9 +339,55 @@ class _HomePageState extends State<HomePage> {
                     Icon(Icons.notifications_active, color: Color(0xff229546)),
               ),
             ),
+
+            InkWell(
+              onTap: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => new CourseMarklist()));
+              },
+              child: ListTile(
+                title: Text('Marklist'),
+                leading:
+                Icon(Icons.verified_user_sharp, color: Color(0xff229546)),
+              ),
+            ),
+
+            InkWell(
+              onTap: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => new Library()));
+              },
+              child: ListTile(
+                title: Text('My Library'),
+                leading:
+                Icon(Icons.my_library_books_outlined, color: Color(0xff229546)),
+              ),
+            ),
+            InkWell(
+              onTap: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => new DownloadFolderAppBar()));
+              },
+              child: ListTile(
+                title: Text('Downloads'),
+                leading:
+                Icon(Icons.download_outlined, color: Color(0xff229546)),
+              ),
+            ),
             Divider(),
             InkWell(
-              onTap: () {},
+              onTap: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => new NewPassword()));
+              },
+              child: ListTile(
+                title: Text('Change password'),
+                leading: Icon(Icons.vpn_key_outlined),
+              ),
+            ),
+            InkWell(
+              onTap: () {
+              },
               child: ListTile(
                 title: Text('About'),
                 leading: Icon(Icons.help),
@@ -244,6 +395,13 @@ class _HomePageState extends State<HomePage> {
             ),
             InkWell(
               onTap: () async {
+                await VerificationDatabaseHelper.instance.delete(1);
+                await VerificationDatabaseHelper.instance.delete(2);
+                await VerificationDatabaseHelper.instance.delete(3);
+                await VerificationDatabaseHelper.instance.delete(4);
+                var queryRows =
+                await VerificationDatabaseHelper.instance.queryAllRows();
+                print(queryRows);
                 SharedPreferences preferences =
                     await SharedPreferences.getInstance();
                 await preferences.clear();

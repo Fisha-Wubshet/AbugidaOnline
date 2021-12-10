@@ -1,5 +1,8 @@
+import 'dart:ffi';
 import 'dart:io';
+import 'package:abugida_online/ImageViewer/ImageViewerFile.dart';
 import 'package:abugida_online/openPDF/localPDF.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:filesystem_picker/filesystem_picker.dart';
@@ -111,6 +114,13 @@ class _DownloadFolderState extends State<DownloadFolder> {
                 builder: (context) =>
                     new PDFScreen(title: 'assignment', path: ggg)));
       }
+      else if(mimeType=='image/png' || mimeType=='image/jpeg' || mimeType=='image/jpg'){
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                new ImageViewerFile(title: 'assignment', path: ggg)));
+      }
       else{
 
           OpenFile.open(ggg);
@@ -144,11 +154,27 @@ class _DownloadFolderState extends State<DownloadFolder> {
     final mimeType = lookupMimeType(ggg);
     print(mimeType);
     if(path!=null) {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) =>
-              new PDFScreen(title: 'Resource', path: ggg)));
+      final mimeType = lookupMimeType(ggg);
+      print(mimeType);
+      if(mimeType=='application/pdf')
+      {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                new PDFScreen(title: 'assignment', path: ggg)));
+      }
+      else if(mimeType=='image/png' || mimeType=='image/jpeg' || mimeType=='image/jpg'){
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                new ImageViewerFile(title: 'assignment', path: ggg)));
+      }
+      else{
+
+        OpenFile.open(ggg);
+      }
     }
     setState(() {
       filePath = path;
@@ -244,6 +270,102 @@ class _DownloadFolderState extends State<DownloadFolder> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _fileChoose(BuildContext context) {
+    return new AlertDialog(
+      title: const Text('', style: TextStyle( fontWeight: FontWeight.bold, fontSize: 2)),
+
+      content: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Divider(color: Color(0xff229546)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+              child: GestureDetector(
+                onTap: () async {
+
+                    // permission was granted
+                    String imgPath = 'storage/emulated/0/Resource';
+                    OpenFile.open(imgPath);
+
+                },
+                child: Center(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.menu_book, color: Color(0xff229546),),
+                      Text(
+                        '  Resources',  style: GoogleFonts.roboto(
+                        textStyle: TextStyle(color: Color(0xff000000), fontSize: 20, shadows: <Shadow>[
+                          Shadow(
+                            offset: Offset(1.5, 1.5),
+                            blurRadius: 3.0,
+                            color: Color(0x2D7BA0E0),
+                          ),
+                        ],fontWeight: FontWeight.bold),),),
+                    ],),),),),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Divider(color: Color(0xff229546)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+              child: GestureDetector(
+                onTap: ()   async {
+                  Directory sampleFolderResource = Directory('storage/emulated/0/Resource');
+
+
+                },
+                child: Align(
+                  alignment: Alignment.center,
+
+                  child: Center(
+                    child: Align(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.library_books, color: Color(0xff229546),),
+                          Text(
+                            '  Assignments',  style: GoogleFonts.roboto(
+                            textStyle: TextStyle(color: Color(0xff000000), fontSize: 20, shadows: <Shadow>[
+                              Shadow(
+                                offset: Offset(1.5, 1.5),
+                                blurRadius: 3.0,
+                                color: Color(0x2D7BA0E0),
+                              ),
+                            ],fontWeight: FontWeight.bold),),),
+                        ],),),),),),),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Divider(color: Color(0xff229546)),
+            ),
+
+          ],
+        ),
+      ),
+
+      actions: <Widget>[
+        new FlatButton(
+          onPressed: () {
+
+            Navigator.of(context).pop();
+
+
+          },
+          child: const Text('Close', style: TextStyle(color: Color(0xff229546), fontWeight: FontWeight.bold),),
+        ),
+
+      ],
     );
   }
 }

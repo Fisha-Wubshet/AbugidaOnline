@@ -190,6 +190,16 @@ class _ExamsListState extends State<ExamsList> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: new AppBar(
+        elevation: 2,
+        backgroundColor: Color(0xff229546),
+        shadowColor: Color(0x502196F3),
+        title: Text('${widget.course_name}',
+            style: TextStyle(
+                color: new Color(0xffffffff),
+                fontSize: 20,
+                fontWeight: FontWeight.bold)),
+      ),
       body: RefreshIndicator(onRefresh: refreshList, child: getBody()),
     );
   }
@@ -199,6 +209,7 @@ class _ExamsListState extends State<ExamsList> {
       return Center(
           child: const SpinKitDoubleBounce(size: 71.0, color: Color(0xff229546)));
     }
+
     if (socketException || timeoutException) {
       return Center(
           child: Padding(
@@ -227,32 +238,32 @@ class _ExamsListState extends State<ExamsList> {
             ),
           ));
     }
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 24, left: 8, right: 8),
-            child: StaggeredGridView.count(
-              shrinkWrap: true,
-              crossAxisCount: 1,
-              physics: ScrollPhysics(),
-              children: <Widget>[
-                myItems1(0xff000000),
-              ],
-              staggeredTiles: [
-                StaggeredTile.fit(1),
-              ],
+    if(users.length==0) {
+      return Center(
+        child: SingleChildScrollView(
+          child: Container(
+            width: 200,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Container(
+                  width: 300,
+                  child: Image(image: AssetImage('assets/Nocontant.png'),),
+                ),
+              ),
             ),
           ),
-          ListView.builder(
-              shrinkWrap: true,
-              physics: ClampingScrollPhysics(),
+        ),
+      );
+    }
+
+    return  ListView.builder(
+
               itemCount: users.length,
               itemBuilder: (context, index) {
                 return getCard(users[index]);
-              }),
-        ],
-      ),
+              }
+
     );
   }
 
@@ -284,7 +295,13 @@ class _ExamsListState extends State<ExamsList> {
         child: Padding(
           padding: const EdgeInsets.all(10.0),
           child: ListTile(
-            leading: Icon(Icons.menu_book, color: Color(0xff229546)),
+
+            leading: Icon(Icons.edit_road_sharp, color:
+            takenStatus=='Taken'? Color(0xff229546):
+            takenStatus!='Taken' && status=="Closed"? Colors.red:
+            takenStatus!='Taken' && status=="Not Started"? Colors.yellow:
+            takenStatus!='Taken' && status=="Open"? Color(0xff3b8dcc):
+            Color(0xff3b8dcc)),
             title: Row(
               children: <Widget>[
                 SizedBox(
@@ -331,15 +348,15 @@ class _ExamsListState extends State<ExamsList> {
                           if(takenStatus!='Taken' && status=="Closed")
                           TextSpan(
                               text: 'Exam Missed',
-                              style: TextStyle(color: Color(0xff229546), fontWeight: FontWeight.bold)),
+                              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                           if(takenStatus!='Taken' && status=="Not Started")
                             TextSpan(
                                 text: 'Not Started',
-                                style: TextStyle(color: Color(0xff229546), fontWeight: FontWeight.bold)),
+                                style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold)),
                           if(takenStatus!='Taken' && status=="Open")
                             TextSpan(
                                 text: 'Started',
-                                style: TextStyle(color: Color(0xff229546), fontWeight: FontWeight.bold)),
+                                style: TextStyle(color: Color(0xff3b8dcc), fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -413,7 +430,7 @@ class _ExamsListState extends State<ExamsList> {
 
                           if(takenStatus=='Taken')
                             TextSpan(
-                                text: ' completed ($score})',
+                                text: ' completed ($score)',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,

@@ -6,17 +6,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-
-
-
-
 /// Homepage
-class YoutubePlayerDemoApp extends StatefulWidget {
+class YoutubePlayerVideo extends StatefulWidget {
+  final course_id;
+  final course_name;
+  final YoutubePlayerLink;
+
+  YoutubePlayerVideo ({
+    this.course_id,
+    this.course_name,
+    this.YoutubePlayerLink
+  });
+
   @override
-  _YoutubePlayerDemoAppState createState() => _YoutubePlayerDemoAppState();
+  _YoutubePlayerVideoState createState() => _YoutubePlayerVideoState();
 }
 
-class _YoutubePlayerDemoAppState extends State<YoutubePlayerDemoApp> {
+class _YoutubePlayerVideoState extends State<YoutubePlayerVideo> {
   YoutubePlayerController _controller;
   TextEditingController _idController;
   TextEditingController _seekToController;
@@ -27,26 +33,19 @@ class _YoutubePlayerDemoAppState extends State<YoutubePlayerDemoApp> {
   bool _muted = false;
   bool _isPlayerReady = false;
 
-  final List<String> _ids = [
-    'L6W1_fUurpA',
-    'gQDByCdjUXw',
-    'iLnmTe5Q2Qw',
-    '_WoCV4c6XOE',
-    'KmzdUe0RSJo',
-    '6jZDSSZZxjQ',
-    'p2lYr3vM_1w',
-    '7QUtEmBT_-w',
-    '34_PXCzGw1M',
-  ];
+ List<String> _ids = [];
 
   @override
   void initState() {
     super.initState();
+ _ids = [
+      YoutubePlayer.convertUrlToId(widget.YoutubePlayerLink),
+    ];
     _controller = YoutubePlayerController(
-      initialVideoId: _ids.first,
+      initialVideoId: _ids[0],
       flags: const YoutubePlayerFlags(
         mute: false,
-        autoPlay: true,
+        autoPlay: false,
         disableDragSeek: false,
         loop: false,
         isLive: false,
@@ -138,18 +137,25 @@ class _YoutubePlayerDemoAppState extends State<YoutubePlayerDemoApp> {
             ),
           ),
           title: const Text(
-            'Youtube Player Flutter',
+            'Video Resource',
             style: TextStyle(color: Colors.white),
           ),
           actions: [
             IconButton(
               icon: const Icon(Icons.video_library),
-              onPressed: () => Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => VideoList(),
-                ),
-              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (context) =>
+                        VideosList(course_id: widget.course_id,
+                          course_name: widget.course_name,
+                        ),
+                  ),
+                );
+              }
             ),
           ],
         ),
@@ -182,43 +188,22 @@ class _YoutubePlayerDemoAppState extends State<YoutubePlayerDemoApp> {
                     ],
                   ),
                   _space,
-                  TextField(
-                    enabled: _isPlayerReady,
-                    controller: _idController,
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'Enter youtube \<video id\> or \<link\>',
-                      fillColor: Colors.blueAccent.withAlpha(20),
-                      filled: true,
-                      hintStyle: const TextStyle(
-                        fontWeight: FontWeight.w300,
-                        color: Colors.blueAccent,
-                      ),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () => _idController.clear(),
-                      ),
-                    ),
-                  ),
-                  _space,
-                  Row(
-                    children: [
-                      _loadCueButton('LOAD'),
-                      const SizedBox(width: 10.0),
-                      _loadCueButton('CUE'),
-                    ],
-                  ),
-                  _space,
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
+
                       IconButton(
-                        icon: const Icon(Icons.skip_previous),
+                        icon: Icon(_muted ? Icons.volume_off : Icons.volume_up),
                         onPressed: _isPlayerReady
-                            ? () => _controller.load(_ids[
-                        (_ids.indexOf(_controller.metadata.videoId) -
-                            1) %
-                            _ids.length])
+                            ? () {
+                          _muted
+                              ? _controller.unMute()
+                              : _controller.mute();
+                          setState(() {
+                            _muted = !_muted;
+                          });
+                        }
                             : null,
                       ),
                       IconButton(
@@ -236,32 +221,12 @@ class _YoutubePlayerDemoAppState extends State<YoutubePlayerDemoApp> {
                         }
                             : null,
                       ),
-                      IconButton(
-                        icon: Icon(_muted ? Icons.volume_off : Icons.volume_up),
-                        onPressed: _isPlayerReady
-                            ? () {
-                          _muted
-                              ? _controller.unMute()
-                              : _controller.mute();
-                          setState(() {
-                            _muted = !_muted;
-                          });
-                        }
-                            : null,
-                      ),
                       FullScreenButton(
+
                         controller: _controller,
                         color: Colors.blueAccent,
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.skip_next),
-                        onPressed: _isPlayerReady
-                            ? () => _controller.load(_ids[
-                        (_ids.indexOf(_controller.metadata.videoId) +
-                            1) %
-                            _ids.length])
-                            : null,
-                      ),
+
                     ],
                   ),
                   _space,

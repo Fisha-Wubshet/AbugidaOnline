@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:abugida_online/ImageViewer/ImageViewer.dart';
 import 'package:abugida_online/assignment/assignment.dart';
 import 'package:abugida_online/main.dart';
+import 'package:abugida_online/pdftest.dart';
 import 'package:abugida_online/resources/Resources.dart';
 import 'package:abugida_online/utils/httpUrl.dart';
 import 'package:abugida_online/webview.dart';
@@ -126,11 +128,14 @@ class _SubmissionAnswerState extends State<SubmissionAnswer> {
 
     // send
     var response = await request.send();
-    print(response.statusCode);
+    await request.send().then((response) async {
+      // listen for response
+      response.stream.transform(utf8.decoder).listen((value) {
+        print(value);
+      });
 
-    // listen for response
-    response.stream.transform(utf8.decoder).listen((value) {
-      print(value);
+    }).catchError((e) {
+      print(e);
     });
     setState(() {
       uploadLoading = false;
@@ -283,7 +288,7 @@ class _SubmissionAnswerState extends State<SubmissionAnswer> {
         print("${response.statusCode}");
         print("${response.body}");
         Fluttertoast.showToast(
-            msg: "Agent deleted",
+            msg: "Solution deleted",
             toastLength: Toast.LENGTH_SHORT,
             gravity: ToastGravity.BOTTOM,
             timeInSecForIosWeb: 1);
@@ -377,14 +382,16 @@ class _SubmissionAnswerState extends State<SubmissionAnswer> {
   Widget getBody() {
     if (solution.contains(null) || solution.length < 0 || isLoading) {
       return Material(
-          child: SpinKitThreeBounce(
+          child: SpinKitDoubleBounce(
             color: Color(0xff229546),
-            size: 30,
+            size: 71,
           ));
     }
     if(uploadLoading){
       return Material(
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text('Uploading '),
               SpinKitThreeBounce(
@@ -458,8 +465,17 @@ class _SubmissionAnswerState extends State<SubmissionAnswer> {
                           print(mimeType);
                           if(mimeType=='image/png' || mimeType=='image/jpeg' || mimeType=='image/jpg'){
                             Navigator.push(this.context,
-                                MaterialPageRoute(builder: (context) => new WebViewPage(title: 'page ${index+1}',
-                                    link: "https://demo.trillium-elearing.com"+item['link'])));
+                                MaterialPageRoute(builder: (context) => new ImageViewer(title: 'page ${index+1}',
+                                    link: httpUrl+item['link'])));
+                          }
+                          else if(mimeType=='application/pdf')
+                          {
+                            Navigator.push(
+                                this.context,
+                                MaterialPageRoute(
+                                    builder: (context) => new pdftest(
+                                        title: 'page ${index+1}',
+                                        link: item['link'])));
                           }
                           else
                           {
@@ -468,9 +484,8 @@ class _SubmissionAnswerState extends State<SubmissionAnswer> {
                                 MaterialPageRoute(
                                     builder: (context) => new WebViewPage(
                                         title: 'page ${index+1}',
-                                        link: "https://docs.google.com/a/demo.trillium-elearing.com/viewer?url=demo.trillium-elearing.com" + item['link'])));
+                                        link: "http://view.officeapps.live.com/op/view.aspx?src=$httpUrl" + item['link'])));
                           }
-
                         }, child: Row(children: <Widget>[
                           new Icon(Icons.grid_view, color: Color(0xff82C042)),
                           new Text(' View',style: TextStyle(color: Color(0xff82C042), ),  ),
@@ -518,23 +533,7 @@ class _SubmissionAnswerState extends State<SubmissionAnswer> {
                   refreshList();
                 }),
           ),
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Container(
-              width: MediaQuery.of(this.context).size.width,
-              height: 40.0,
-              padding: EdgeInsets.symmetric(horizontal: 15.0),
-              margin: EdgeInsets.only(top: 15.0),
-              child: RaisedButton(
-                onPressed: () {},
-                elevation: 0.0,
-                color: Color(0xff82C042),
-                child: Text("Download", style: TextStyle(color: Colors.white)),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5.0)),
-              ),
-            ),
-          ),
+
         ],
       ),
     );
